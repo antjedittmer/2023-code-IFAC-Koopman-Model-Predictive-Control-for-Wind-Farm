@@ -22,7 +22,7 @@ WFSim is used both for data generation in open loop and for closed loop testing.
 
 The code in this repository was tested in the following environment:
 
-* *Windows 10 Enterprise 21H2
-* *Matlab* 2020a (Toolboxes used: Control System Toolbox and Optimization Toolbox)
+* Windows 10 Enterprise 21H2
+* Matlab* 2020a (Toolboxes used: Control System Toolbox and Optimization Toolbox)
 
 
