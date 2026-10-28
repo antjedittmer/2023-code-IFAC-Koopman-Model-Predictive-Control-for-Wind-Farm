@@ -9,10 +9,11 @@ function sel = aicNoV1ModelTimes()
 %
 % Output
 % - sel: table with Time_s, Color and TextSide (time stamp in the update
-%   subplot right (1) or left (-1) of the line; 5100 s left, next to the
-%   first updates)
+%   subplot right (> 0) or left (< 0) of the line, the magnitude scales the
+%   distance; 5100 s left, next to the first updates, 6000 s right of
+%   the last update at 6235 s)
 
 cl = lines(5);
-sel = table([240; 5100; 6000; 8000], [0.5 0.5 0.5; cl(3:5,:)], [1; -1; 1; 1], ...
+sel = table([240; 5100; 6000; 8000], [0.5 0.5 0.5; cl(3:5,:)], [1; -1; 4; 1], ...
     'VariableNames', {'Time_s','Color','TextSide'});
 end

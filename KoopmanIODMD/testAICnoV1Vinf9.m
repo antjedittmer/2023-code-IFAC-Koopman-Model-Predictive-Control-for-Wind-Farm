@@ -23,6 +23,7 @@ function [R, fig] = testAICnoV1Vinf9(dirFig, t0, ad)
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
+addpath(fullfile(mainDir,'WFSimCode','libraries','figureExport')); % setFigureSize, printFigure
 koopmanDir = fileparts(mfilename('fullpath')); % vaf
 addpath(genpath(fullfile(koopmanDir,'Functions')));
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
@@ -91,7 +92,8 @@ for idxV = 1:2
         title(['V_{r2}: ', rmseStr], 'FontWeight', 'normal', 'Interpreter', 'tex');
     end
 end
-printFixedWidth(fig, fullfile(dirFig, 'AdaptiveAIC_Test9'));
+setFigureSize(fig, [1 1]); % standard figure, independent of the screen
+printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_Test9'));
 disp(R)
 end
 
@@ -102,16 +104,4 @@ for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
 str = strjoin(parts, ', ');
-end
-
-function printFixedWidth(h, fName)
-% printFixedWidth saves figure h as vector .eps and 300 dpi .png with the
-% width of the standard MATLAB figure (560 px = 14.82 cm), the height from
-% the aspect ratio of the window (as plotEDMDinputsEffWindUpdate)
-pos = get(h, 'Position');
-sizeCm = 14.82*[1, pos(4)/pos(3)];
-set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
-    'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
-print(h, fName, '-depsc', '-painters', '-loose');
-print(h, fName, '-dpng', '-r300');
 end

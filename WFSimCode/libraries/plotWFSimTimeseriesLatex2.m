@@ -41,7 +41,8 @@ figure; clf;
 % Prepare lines etc.
 posDefault = get(gcf, 'position');
 % posDefault = [805.0000  272.2000  560.0000  420.0000];
-set(gcf, 'position', [posDefault(1),posDefault(2)-75,posDefault(3),posDefault(4)*1.35]);
+set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*1.6]);
+setFigureSize(gcf, [1 1.6]); % 5 subplots: export size as the closed-loop thesis figures
 cl = lines;%[0,0,1; 1,0,0; 0 1 0; 1,0,1]; %
 nl = length(unique(cl,'rows','legacy'));
 cl(nl+1,:) = 0.5 *ones(1,3);
@@ -230,5 +231,4 @@ filenamepng = [filenamepng,sprintf('_Update%d', sol_array(1).update)];
 end
 
 saveas(gcf,fullfile(dirFig,filenamepng), 'fig')
-print(gcf,fullfile(dirFig,filenamepng), '-dpng');
-print(gcf,fullfile(dirFig,filenamepng), '-depsc');
+printFigure(gcf, fullfile(dirFig,filenamepng)); % fixed size (setFigureSize)
