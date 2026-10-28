@@ -59,7 +59,7 @@ end
 %% 3. Open-loop validation: non-adaptive and online updated model,
 % singular values of the updated models vs. the offline model at 9 m/s
 cd KoopmanIODMD
-[~, sigmaSel] = plotAICnoV1Sigma();
+[~, sigmaSel] = plotAICnoV1Sigma([], [], [], [], [240 5100 6000 8000]); % models at these times (s)
 VAFol = validateAICnoV1([], [], [], sigmaSel); % updates of the shown models in color
 test9 = testAICnoV1Vinf9();
 cd(mainDir)

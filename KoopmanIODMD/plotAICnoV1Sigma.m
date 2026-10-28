@@ -1,4 +1,4 @@
-function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad)
+function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad, tSel)
 % plotAICnoV1Sigma singular values of the Koopman effective wind speed model
 % without V1 (identifyAICnoV1: inputs CT1, CT2, outputs Vr1, Vr2) during the
 % online update, as Fig. 3 of the CDC22 paper: the model is updated in the
@@ -12,6 +12,8 @@ function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad)
 % - dirFig: folder of AdaptiveAIC_OL_Sigma (.eps, .png), default
 %   DataInOutWfSim/AdaptiveAIC
 % - filenameVal, t0, ad: validation data and update settings (validateAICnoV1)
+% - tSel: times (s) of the shown models, at most 4 (default: initial, after a
+%   quarter, half and all of the updates)
 %
 % Outputs
 % - fig: figure handle
@@ -24,7 +26,8 @@ dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 if nargin < 1 || isempty(dirFig), dirFig = dirOut; end
 if nargin < 2 || isempty(filenameVal), filenameVal = 'sowfa_2turb_ct_levels_val'; end
 if nargin < 3 || isempty(t0), t0 = 240; end
-if nargin < 4, ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
+if nargin < 4 || isempty(ad), ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
+if nargin < 5, tSel = []; end
 
 % Offline models at 7 m/s (initial model of the update) and 9 m/s
 file7 = fullfile(dirOut,'KoopAICnoV1.mat');
@@ -41,12 +44,16 @@ k = t0:numel(S.Ur1);
 Ur = [S.Ur1(k); S.Ur2(k)];
 W = [S.Ct1(k); S.Ct2(k)];
 
-% Shown models: initial, after a quarter, half and all of the updates (a
-% single update hardly changes the model, the initial correlation matrices
-% are sums over the whole identification data)
+% Shown models: at the times tSel (s) or initial, after a quarter, half and
+% all of the updates (a single update hardly changes the model, the initial
+% correlation matrices are sums over the whole identification data)
 [~, upd] = simAdaptiveKoopman(model7, Ur, W, true, ad);
-iUpd = find(upd);
-saveAt = unique([1, iUpd(ceil(numel(iUpd)*[0.25 0.5 1]))]);
+if ~isempty(tSel)
+    saveAt = tSel - k(1) + 1;
+else
+    iUpd = find(upd);
+    saveAt = unique([1, iUpd(ceil(numel(iUpd)*[0.25 0.5 1]))]);
+end
 [~, ~, ~, ~, models] = simAdaptiveKoopman(model7, Ur, W, true, ad, saveAt);
 % Colors: initial model gray, updated models in colors not used for WT1,
 % WT2 (lines 1, 2), the same colors mark the update times in the
@@ -61,19 +68,21 @@ omega = logspace(-5, log10(pi), 600);
 sv = @(A,B) sigma(ss(A, B, eye(2,size(A,1)), zeros(2,size(B,2)), 1), omega);
 
 fig = figure;
-lw = 1.2;
+loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', 2); hold on; % below the updated models
+ls = {'-','-.','--',':'};
+lw = [0.75 0.75 0.75 1];
 names = cell(1,numel(models));
 for idx = 1:numel(models)
-    loglog(omega, sv(models(idx).A, models(idx).B)', 'Color', cl(idx,:), 'LineWidth', lw); hold on;
+    loglog(omega, sv(models(idx).A, models(idx).B)', 'Color', cl(idx,:), ...
+        'LineStyle', ls{idx}, 'LineWidth', lw(idx));
     names{idx} = sprintf('%d s', k(models(idx).k));
 end
-loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', lw);
 grid on; axis tight;
 xlabel('Frequency (rad/s)');
 ylabel('Singular values (m/s)');
 set(gca, 'FontSize', 11, 'TickLabelInterpreter', 'tex');
 title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
-    ['Updated at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
+    ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
     'FontWeight', 'normal', 'Interpreter', 'tex');
 printFixedWidth(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)
