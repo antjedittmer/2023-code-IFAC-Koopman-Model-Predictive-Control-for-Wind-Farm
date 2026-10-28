@@ -160,6 +160,9 @@ else
 end
 ylabel('$Update$ ','interpreter','latex')
 axis tight;
+if ~isempty(tVec) % zero line visible above the axis, as the closed loop
+    ylim([-0.1 1.1]);
+end
 
 %legend('P','Location','northeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 %legend('boxoff')
