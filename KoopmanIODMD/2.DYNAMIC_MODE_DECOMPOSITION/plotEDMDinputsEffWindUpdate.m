@@ -139,13 +139,15 @@ if ~isempty(marks) % updates after which the model is shown elsewhere
         % first sample (initial model): shifted to be visible next to the axis
         tMark = max(marks.Time_s(idx), xk(1) + 0.004*(xk(end)-xk(1)));
         plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2, 'LineStyle', '-');
-        % time stamp at the bottom, right of the line (left if TextSide = -1)
+        % time stamp at the bottom, right of the line (left if TextSide = -1,
+        % with more space, the updates before are dense)
         side = 1;
         if ismember('TextSide', marks.Properties.VariableNames), side = marks.TextSide(idx); end
         hAlign = {'right','left'};
-        text(tMark + side*0.008*(xk(end)-xk(1)), 0.05, sprintf('%d s', marks.Time_s(idx)), ...
-            'Color', marks.Color(idx,:), 'FontSize', fs, 'VerticalAlignment', 'bottom', ...
-            'HorizontalAlignment', hAlign{(side > 0) + 1});
+        gap = 0.008 + 0.012*(side < 0);
+        text(tMark + side*gap*(xk(end)-xk(1)), 0.05, sprintf('%d s', marks.Time_s(idx)), ...
+            'Color', marks.Color(idx,:), 'FontSize', 12, 'FontWeight', 'bold', ...
+            'VerticalAlignment', 'bottom', 'HorizontalAlignment', hAlign{(side > 0) + 1});
     end
 end
 
@@ -176,6 +178,7 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
         '; Estimated sig.: ', colorKey({'V_{r1,est}','V_{r2,est}'}, [0 0 0.6; 0.6 0 0])]};
     axTop.Title.FontWeight = 'normal';
     axs(1).YLabel.String = 'Update (-)';
+    set([axs.XLabel], 'FontSize', 12);
 end
 
 %sys_red{1,1}.Xint = xo;

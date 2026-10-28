@@ -80,7 +80,7 @@ for idxV = 1:2
     grid on; axis tight;
     ylabel(sprintf('V_{r%d} (m/s)', idxV));
     set(gca, 'FontSize', 11);
-    if idxV == 2, xlabel('Time (s)'); end
+    if idxV == 2, xlabel('Time (s)', 'FontSize', 12); end
     rmseStr = sprintf('%.2f/', R{iPlot, sprintf('RMSE_Ur%d', idxV)});
     rmseStr = ['RMSE = ', rmseStr(1:end-1), ' m/s'];
     if idxV == 1

@@ -130,6 +130,7 @@ for idx = 1:numel(ax)
     set(ax(idx),'FontSize',fs,'TickLabelInterpreter','tex');
 end
 ax(1).TitleFontSizeMultiplier = 11/fs; % title 11 pt (default 1.1*fs), fits the figure width
+ax(end).XLabel.FontSize = 12; % as all thesis figures
 axP = ax(1); axCT = ax(3); axUr = ax(end - showUpdate);
 ylim(axCT,[-0.1 2.1]);
 tP = time(time >= 60); % without the start-up
