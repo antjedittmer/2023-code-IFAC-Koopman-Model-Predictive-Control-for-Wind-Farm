@@ -1,10 +1,10 @@
 % mainGeneratePlotThesis creates the thesis plots of the Koopman MPC
-% without wind speed input (input-only Koopman power model 'Ur n=6',
-% KoopFeatModel3.mat) and of the published cases with the wind speed V1:
+% without the wind speed V1 (input-only Koopman power model 'Ur n=6',
+% KoopFeatModel3.mat):
 %   - Open-loop identification: diagnostic plots of Ur1, Ur2 and the farm
 %     power on the three validation sets (plotPowerStatesDiag)
-%   - Closed loop: Baseline AIC, AIC with static yaw and WRC-AIC, each
-%     published (with V1) and without wind (plotWFSimTimeseriesTex)
+%   - Closed loop: Baseline AIC, AIC with static yaw and WRC-AIC
+%     (plotWFSimTimeseriesTex)
 % Steps whose results exist are not repeated (open-loop data, Koopman
 % models, closed-loop plot data <figure name>_plotData.mat), so a second
 % call only replots. All figures are copied into the folder figThesis.
@@ -16,30 +16,35 @@ dirModels = fullfile(mainDir,'DataInOutWfSim');
 dirInputsOnly = fullfile(dirModels,'PowerInputsOnly');
 
 %% 1. Create or load open loop data with WFSim (as mainGeneratePlots)
-% Identification (noise_step, ct_levels) and validation sets (steps,
-% steps_Ct_comb, ct_levels_val); the run is skipped if the data exist
+% Identification (noise_step, ct_levels) and validation sets (ct_levels_val,
+% steps, steps_Ct_comb) of the input-only model, AllComb for the model in
+% step 2; the run is skipped if the data exist
 R = 1e-6; refstairs = 0; measured = 1; KoopmanStates = 6; PolyLiftingFunction = 0;
 controller = 0; Vinf = 8; vinfstr = '';
-ControlSetStrs = {'sowfa_2turb_yaw_noise_step','sowfa_2turb_yaw_steps_Ct_comb', ...
-    'sowfa_2turb_alm_turbl_AllComb','sowfa_2turb_yaw_steps', ...
-    'sowfa_2turb_yaw_ct_levels','sowfa_2turb_yaw_ct_levels_val'};
+ControlSetStrs = {'sowfa_2turb_yaw_noise_step','sowfa_2turb_yaw_ct_levels', ...
+    'sowfa_2turb_yaw_ct_levels_val','sowfa_2turb_yaw_steps','sowfa_2turb_yaw_steps_Ct_comb', ...
+    'sowfa_2turb_alm_turbl_AllComb'};
 for idx = 1:numel(ControlSetStrs)
     WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,controller,ControlSetStrs{idx},Vinf,vinfstr);
     close all
 end
 
 %% 2. Koopman models
-% Published models with the wind speed V1 (step 2 of mainGeneratePlots)
-koopmanDirs = fullfile(dirModels,{'eDMDresults_UasOutput','eDMDresults_UasOutput_MIMO', ...
-    'eDMDresults_UasOutput_MIMO_PT'},'Vin_Vinf8dot0_states06');
-if ~all(cellfun(@isfolder, koopmanDirs))
-    yawmode = 1; filenameId = 'Vinf8dot0_sowfa_2turb_yaw_noise_step';
-    filenameVal = 'Vinf8dot0_sowfa_2turb_yaw_steps'; noStates = 6; useVal = 1;
-    percentTrain = .6; NTMstr = ''; PolyVec = 0; t0 = 240;
-    MainWfSimVinYawPowerOut(yawmode,filenameId,filenameVal,noStates,PolyVec,useVal,percentTrain,NTMstr,t0);
-    MainWfSimVinYaw(yawmode,filenameId,filenameVal,noStates,PolyVec,useVal,percentTrain,NTMstr,t0);
-    yawmode = 0; filenameId = 'Vinf8dot0_sowfa_2turb_alm_turbl_AllComb'; filenameVal = filenameId;
-    MainWfSimVin(yawmode,filenameId,filenameVal,noStates,PolyVec,useVal,percentTrain,NTMstr,t0);
+% MPCinitv loads the published Ur model (eDMDresults_UasOutput) and power
+% model (eDMDresults_UasOutput_MIMO_PT) with V1 also for KoopFeat > 0; they
+% are evaluated, but the applied input of the runs without wind (KoopAIC = 0)
+% only depends on the input-only power model and the measured Ur
+koopmanDirs = fullfile(dirModels,{'eDMDresults_UasOutput','eDMDresults_UasOutput_MIMO_PT'}, ...
+    'Vin_Vinf8dot0_states06');
+noStates = 6; PolyVec = 0; useVal = 1; percentTrain = .6; NTMstr = ''; t0 = 240;
+if ~isfolder(koopmanDirs{1})
+    filenameId = 'Vinf8dot0_sowfa_2turb_alm_turbl_AllComb';
+    MainWfSimVin(0,filenameId,filenameId,noStates,PolyVec,useVal,percentTrain,NTMstr,t0);
+    close all
+end
+if ~isfolder(koopmanDirs{2})
+    MainWfSimVinYawPowerOut(1,'Vinf8dot0_sowfa_2turb_yaw_noise_step','Vinf8dot0_sowfa_2turb_yaw_steps', ...
+        noStates,PolyVec,useVal,percentTrain,NTMstr,t0);
     close all
 end
 
@@ -66,18 +71,15 @@ end
 % Per validation set Ur1, Ur2 and the farm power: WFSim vs. model
 VAFdiag = plotPowerStatesDiag(sprintf('KoopFeatModel%d.mat',KoopFeat), valN, 240);
 
-%% 4. Closed loop: published cases (with V1) and without wind
+%% 4. Closed loop without wind
 R = 1e-6; refstairs = -1; measured = 0; controller = 2; Vinf = 8;
 ControlSetStr = 'sowfa_2turb_alm_turbl'; PolyLiftingFunction = 0; KoopmanStates = 6;
 vinfStr = ''; kTimestep = 2; sol_update = 0; Rvec = [1,1,0.001]; RU = 100;
 
 % {name, OptYaw, KoopAIC, KoopFeat}
-cases = {'Baseline AIC (paper)',          0, 1, 0
-         'AIC with static yaw (paper)',   1, 1, 0
-         'WRC-AIC (paper)',               1, 0, 0
-         'Baseline AIC, no wind',         0, 0, KoopFeat
-         'AIC with static yaw, no wind',  2, 0, KoopFeat
-         'WRC-AIC, no wind',              1, 0, KoopFeat};
+cases = {'Baseline AIC',          0, 0, KoopFeat
+         'AIC with static yaw',   2, 0, KoopFeat
+         'WRC-AIC',               1, 0, KoopFeat};
 resCL = table();
 for idxC = 1:size(cases,1)
     [~,JR,JQ] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
@@ -94,9 +96,7 @@ if ~isfolder(thesisDir)
     mkdir(thesisDir);
 end
 origDirCL = fullfile(mainDir,'DataT2OLWFSim','Vinf8dot0_CL_K06_P0');
-filenamesCL = {'R1dot0e_neg06_Update0_Tex','R1dot0e_neg06_KoopAIC1_Update0_Tex', ...
-    'R1dot0e_neg06_KoopAIC0_Update0_Tex', ...
-    sprintf('R1dot0e_neg06_KoopAIC0_OptYaw0_KoopFeat%d_Update0_Tex',KoopFeat), ...
+filenamesCL = {sprintf('R1dot0e_neg06_KoopAIC0_OptYaw0_KoopFeat%d_Update0_Tex',KoopFeat), ...
     sprintf('R1dot0e_neg06_KoopAIC0_OptYaw2_KoopFeat%d_Update0_Tex',KoopFeat), ...
     sprintf('R1dot0e_neg06_KoopAIC0_KoopFeat%d_Update0_Tex',KoopFeat)};
 filetype = {'.png','.eps'};

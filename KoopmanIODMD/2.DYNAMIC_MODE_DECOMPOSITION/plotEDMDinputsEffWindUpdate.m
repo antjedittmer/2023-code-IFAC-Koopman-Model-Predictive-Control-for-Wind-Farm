@@ -148,7 +148,7 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
     axs = findall(fig1,'Type','axes');
     set(axs,'TickLabelInterpreter','tex');
     axTop = axs(end); % first subplot
-    axTop.Title.String = {axTop.Title.String, colorKey({'WT1','WT2','V_\infty','V_{r1} est.','V_{r2} est.'}, ...
+    axTop.Title.String = {axTop.Title.String, colorKey({'WT1','WT2','V_\infty','V_{r1,est}','V_{r2,est}'}, ...
         [cl(1,:); cl(2,:); 0 0 0; 0 0 0.6; 0.6 0 0])};
     axTop.Title.FontWeight = 'normal';
     axs(1).YLabel.String = 'Update (-)';

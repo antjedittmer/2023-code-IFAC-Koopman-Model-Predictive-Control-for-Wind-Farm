@@ -2,8 +2,11 @@ function fig = plotWFSimTimeseriesTex(pd, dirFig, fileBase)
 % plotWFSimTimeseriesTex closed-loop time series as plotWFSimTimeseriesLatex2
 % with the TeX interpreter, the operating mode in the title and the time in
 % s on the x axis (thesis figures). Instead of legends, the title of the
-% first subplot names the signals in their line colors (WT1, WT2 for the
-% turbine signals), so no data are covered; line styles go into the caption. The data pd are saved per run by
+% first subplot names the signals in their line colors (Farm: P_ref, P_WF,
+% P_WF,est (WRC-AIC with the input-only model, pd.P_est), P_greedy, V_inf;
+% Turbine: V_r1, V_r2 and their estimates (AIC); the turbine
+% colors also apply to C_T' and yaw), so no data are covered; line styles
+% go into the caption. The data pd are saved per run by
 % WFSim_demo (<figure name>_plotData.mat), so the figure can be recreated
 % without simulation: tmp = load(file); plotWFSimTimeseriesTex(tmp.pd, dirFig, fileBase)
 %
@@ -28,13 +31,25 @@ else
     modeStr = 'WRC-AIC';
 end
 if isfield(pd,'modeStr'), modeStr = pd.modeStr; end
-titleStr = sprintf('%s: TE = %.1f kW, AA = %.2e', modeStr, pd.JQ*1e3, pd.JR);
+titleStr = sprintf('%s: TE = %.1f kW, AA = %.1e', modeStr, pd.JQ*1e3, pd.JR);
 showUpdate = isfield(pd,'update') && any(pd.update);
 showGreedy = ~isfield(pd,'showGreedy') || pd.showGreedy;
 showYaw = ~isfield(pd,'showYaw') || pd.showYaw;
 nSub = 4 + showYaw + showUpdate;
 iSub = cumsum([1, 1, 1, showYaw, 1, showUpdate]); % subplot index of P, V, CT, yaw, Ur, update
-showEst = pd.KoopAIC == 1; % estimated Ur used by the controller
+% Estimates: Vr1, Vr2 for the AIC (Ur model, or input-only power model
+% without wind), farm power for the WRC-AIC with the input-only power model
+isFeat = isfield(pd,'KoopFeat') && pd.KoopFeat > 0 && isfield(pd,'P_est');
+showEstP = isFeat && pd.OptYaw == 1;
+showEst = pd.KoopAIC == 1 || (isFeat && pd.OptYaw ~= 1);
+% VAF of the shown estimates over the plotted time in the first title line
+vaf = @(y,yh) 100*(1 - var(y - yh)/var(y));
+if showEstP
+    titleStr = sprintf('%s, VAF_{P} = %.1f %%', titleStr, vaf(sum(pd.Power(:,time)), pd.P_est(time)));
+elseif showEst
+    titleStr = sprintf('%s, VAF_{V} = %.1f/%.1f %%', titleStr, ...
+        vaf(pd.V(1,time), pd.V_est(1,time)), vaf(pd.V(2,time), pd.V_est(2,time)));
+end
 
 fig = figure;
 posDefault = get(fig, 'position');
@@ -43,18 +58,24 @@ set(fig, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4
 ax = gobjects(nSub,1);
 ax(1) = subplot(nSub,1,1);
 stairs(time,pd.Pref(time)/1e6,'k','linewidth',lw); hold on; grid on;
-stairs(time,sum(pd.Power(:,time))/1e6,'--','linewidth',lw+0.2,'color',cl(4,:));
-keyNames = {'P_{ref}, V_\infty','P_{WF}'};
-keyColors = [0 0 0; cl(4,:)];
+stairs(time,sum(pd.Power(:,time))/1e6,'-.','linewidth',lw+0.2,'color',cl(4,:));
+keyNames = {'Farm:','P_{ref}','P_{WF}'};
+keyColors = [0 0 0; 0 0 0; cl(4,:)];
+if showEstP % estimated farm power (dark purple)
+    clPest = [0.30 0.05 0.35];
+    stairs(time,pd.P_est(time)/1e6,':','linewidth',lw+0.4,'color',clPest);
+    keyNames{end+1} = 'P_{WF,est}';
+    keyColors(end+1,:) = clPest;
+end
 if showGreedy
     stairs(time,pd.Pgreedy*ones(size(time))/1e6,':','linewidth',lw+0.2,'color',cl(5,:));
     keyNames{end+1} = 'P_{greedy}';
     keyColors(end+1,:) = cl(5,:);
 end
-keyNames = [keyNames, {'WT1','WT2'}];
-keyColors = [keyColors; cl(1:2,:)];
+keyNames = [keyNames, {'V_\infty',' Turbine:','V_{r1}','V_{r2}'}];
+keyColors = [keyColors; 0 0 0; 0 0 0; cl(1:2,:)];
 if showEst % estimated effective wind speeds (dark blue, dark red)
-    keyNames = [keyNames, {'V_{r1} est.','V_{r2} est.'}];
+    keyNames = [keyNames, {'V_{r1,est}','V_{r2,est}'}];
     keyColors = [keyColors; 0 0 0.7; 0.7 0 0];
 end
 strLeg = colorTitle(keyNames, keyColors);
@@ -104,10 +125,13 @@ for idx = 1:numel(ax)
     axis(ax(idx),'tight');
     set(ax(idx),'FontSize',fs,'TickLabelInterpreter','tex');
 end
+ax(1).TitleFontSizeMultiplier = 11/fs; % title 11 pt (default 1.1*fs), fits the figure width
 axP = ax(1); axCT = ax(3); axUr = ax(end - showUpdate);
 ylim(axCT,[-0.1 2.1]);
 tP = time(time >= 60); % without the start-up
 pAll = [pd.Pref(tP)'; sum(pd.Power(:,tP))]/1e6;
+if showGreedy, pAll(end+1,:) = pd.Pgreedy/1e6; end
+if showEstP, pAll(end+1,:) = pd.P_est(tP)/1e6; end
 pAll = pAll(:,~any(isnan(pAll),1));
 ylim(axP,[min(pAll(:))-0.05, max(pAll(:))+0.05]);
 set(axP,'YTick',0:0.4:10);
@@ -132,5 +156,5 @@ parts = cell(size(names));
 for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
-str = strjoin(parts, '   ');
+str = strjoin(parts, '  ');
 end
