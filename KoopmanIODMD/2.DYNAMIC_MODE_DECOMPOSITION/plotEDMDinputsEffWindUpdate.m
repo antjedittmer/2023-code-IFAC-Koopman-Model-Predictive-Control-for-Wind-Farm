@@ -51,10 +51,11 @@ set(gcf, 'position', [posDefault(1:2),posDefault(3),posDefault(4)*1.2]);
 cl = colormap('lines');
 lw = 1;
 fs = 10;
-kplot = 60: length(ysim_val);
 if isempty(tVec)
+    kplot = 60: length(ysim_val);
     xk = 1:length(kplot);
-else
+else % time axis: the data start after the start-up (t0), show all
+    kplot = 1: length(ysim_val);
     xk = tVec(kplot);
 end
 
@@ -135,7 +136,9 @@ end
 if ~isempty(marks) % updates after which the model is shown elsewhere
     hold on;
     for idx = find(marks.Time_s(:)' >= xk(1) & marks.Time_s(:)' <= xk(end))
-        plot(marks.Time_s(idx)*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2);
+        % first sample (initial model): shifted to be visible next to the axis
+        tMark = max(marks.Time_s(idx), xk(1) + 0.004*(xk(end)-xk(1)));
+        plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2);
     end
 end
 

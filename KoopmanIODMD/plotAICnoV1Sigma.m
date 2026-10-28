@@ -62,19 +62,18 @@ sv = @(A,B) sigma(ss(A, B, eye(2,size(A,1)), zeros(2,size(B,2)), 1), omega);
 
 fig = figure;
 lw = 1.2;
-names = cell(1,numel(models)-1);
+names = cell(1,numel(models));
 for idx = 1:numel(models)
     loglog(omega, sv(models(idx).A, models(idx).B)', 'Color', cl(idx,:), 'LineWidth', lw); hold on;
-    if idx > 1, names{idx-1} = sprintf('%d s', k(models(idx).k)); end
+    names{idx} = sprintf('%d s', k(models(idx).k));
 end
 loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', lw);
 grid on; axis tight;
 xlabel('Frequency (rad/s)');
 ylabel('Singular values (m/s)');
 set(gca, 'FontSize', 11, 'TickLabelInterpreter', 'tex');
-title({['Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}: ', ...
-    colorKey({'initial (offline ID 7 m/s)','offline ID 9 m/s'}, [cl(1,:); 0 0 0])], ...
-    ['Updated until t = ', colorKey(names, cl(2:end,:))]}, ...
+title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
+    ['Updated at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
     'FontWeight', 'normal', 'Interpreter', 'tex');
 printFixedWidth(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)
