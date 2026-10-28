@@ -1,5 +1,5 @@
 function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU)
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat)
 % WFSim_demo is the WIND FARM SIMULATOR (WFSIM) by S. Boersma and B. Doekemeijer
 % from https://github.com/TUDelft-DataDrivenControl/WFSim
 %
@@ -13,6 +13,14 @@ function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanSta
 % - KoopmanStates (for Koopman model):  Number of Koopman states
 % - PolyLiftingFunction(for Koopman model): Higher order lifting function
 % - controller: integer switch: Open-loop: 0,  Wfsim NMPC: 1, KMPC: 2
+% - KoopFeat (KMPC with KoopAIC = 0): 1 uses the input-only Koopman power
+%   model with input features (KoopFeatModel.mat, exportPowerFeatureModel)
+%   instead of the model with the measured wind speed V1. Default: 0
+%
+% Closed loop with KMPC (controller = 2, no library update): the plot data of
+% each run are saved as <figure name>_plotData.mat in the output folder. If
+% this file exists, the run is not repeated and the figures are recreated
+% from it (plotWFSimTimeseriesTex); delete the file to run it again.
 
 rng('default');
 if ~nargin
@@ -84,6 +92,10 @@ end
 
 if nargin < 15
     RU = 100; %0.75; 0
+end
+
+if nargin < 16
+    KoopFeat = 0;
 end
 
 
@@ -248,10 +260,27 @@ VinfStrFig = strrep(VinfStr,'To','');
 fileName = [sprintf('%s_%s',VinfStrFig,ControlSetStr),'.mat'];
 matFileExists = exist(fullfile(dirFig,fileName),'file') == 2;
 
+if controller == 2 && ~measured && ~KoopAIC && OptYaw ~= 1 % Koopman AIC with yaw 0 or static yaw
+    figName = sprintf('%s_KoopAIC0_OptYaw%d',Rprint,OptYaw);
+end
+if KoopFeat == 1
+    figName = [figName,'_KoopFeat'];
+elseif KoopFeat > 1
+    figName = sprintf('%s_KoopFeat%d',figName,KoopFeat);
+end
 filenamepng = matlab.lang.makeValidName(figName);
 fullFigName = fullfile(dirFig,[filenamepng,'.fig']);
 
 figFileExists = exist(fullFigName,'file') == 2;
+
+plotDataFile = fullfile(dirFig,[filenamepng,sprintf('_Update%d',sol_update),'_plotData.mat']);
+if controller == 2 && ~sol_update && exist(plotDataFile,'file') == 2
+    disp(['Plot data exist: ',plotDataFile]);
+    tmp = load(plotDataFile,'pd');
+    plotWFSimTimeseriesTex(tmp.pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
+    sol_array = []; JR = tmp.pd.JR; JQ = tmp.pd.JQ;
+    return;
+end
 
 if matFileExists && figFileExists %&& controller == 0 && 0%gt = get(gca, 'title');
     disp(['Mat file exists: ',fileName]);
@@ -277,6 +306,7 @@ end
 mpc.OptYaw = OptYaw;
 mpc.KoopAIC = KoopAIC;
 mpc.Rvec = Rvec;
+mpc.KoopFeat = KoopFeat;
 
 mpc.RU = RU;
 
@@ -388,4 +418,18 @@ elseif sol.update
 else
     time1 = time(time >= 500 & time <= 1200);
     [JR,JQ] = plotWFSimTimeseriesLatex2(Wp,sol_array,controller,Power,CT_prime,Phi,V,JR,time1,measured,figName,dirFig,mpc);
+
+    % Save the plot data of this run (controller and model in the file name)
+    kk = length(Power);
+    utemp = reshape(cell2mat(arrayfun(@(x)(x.u),sol_array,'UniformOutput',false)),Wp.mesh.Nx,Wp.mesh.Ny,kk);
+    nTxP = round(Wp.turbine.Crx(1)/Wp.mesh.Lx*Wp.mesh.Nx);
+    nTyP = round(Wp.turbine.Cry(1)/Wp.mesh.Ly*Wp.mesh.Ny);
+    X_est = cell2mat(arrayfun(@(x)(x.xprev),sol_array,'UniformOutput',false));
+    pd = struct('time',time1,'Power',Power,'CT_prime',CT_prime,'Phi',Phi,'V',V, ...
+        'V_est',X_est(1:2,:),'u1',squeeze(utemp(nTxP,nTyP,:))','uInf',squeeze(utemp(1,nTyP,:))', ...
+        'Pref',mpc.Pref(1:kk),'Pgreedy',mpc.Pgreedy,'JQ',JQ,'JR',JR,'R',R, ...
+        'controller',controller,'measured',measured,'OptYaw',OptYaw,'KoopAIC',KoopAIC, ...
+        'KoopFeat',KoopFeat,'KoopmanStates',KoopmanStates,'ControlSetStr',ControlSetStr);
+    save(plotDataFile,'pd');
+    plotWFSimTimeseriesTex(pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
 end

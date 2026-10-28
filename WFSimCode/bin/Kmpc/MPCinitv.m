@@ -119,6 +119,21 @@ K.xprev = koopmanstateextensionWFSim(sol.u(1:2,1),PolyLiftingFunction,KoopmanSta
 % KP.D = KWFModelP.sys_red.D;
 
 K.KPsys = KWFModelP.sys_red; 
+
+% Input-only Koopman power model with input features (KoopFeat = 1 in
+% WFSim_demo): replaces KPsys in the prediction of the farm power
+if isfield(mpc,'KoopFeat') && mpc.KoopFeat
+    featFile = 'KoopFeatModel.mat'; % KoopFeat = 1 (exportPowerFeatureModel)
+    if mpc.KoopFeat > 1 % further models (runKoopStatesCL)
+        featFile = sprintf('KoopFeatModel%d.mat', mpc.KoopFeat);
+    end
+    tmp = load(fullfile(fileparts(DataKoopman),'PowerInputsOnly',featFile),'model');
+    K.feat = tmp.model;
+    mpc.featM = []; % moving means of the features, initialized at the first step
+    mpc.urS = []; % past Ur and moving mean of Ur (states DUr, Ur(k-1))
+else
+    mpc.KoopFeat = 0;
+end
 % K.AKoop = KWFModelP.Koop.A;
 % K.GKoop = KWFModelP.Koop.G;
 

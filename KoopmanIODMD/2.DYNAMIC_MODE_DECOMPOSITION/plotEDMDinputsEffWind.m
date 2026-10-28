@@ -1,6 +1,8 @@
-function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,displayOff,Vinf,strOut)
+function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,displayOff,Vinf,strOut,tVec,interp)
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
+% Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
+% Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units in ())
 
 if nargin < 6
     Vin = 0;
@@ -25,6 +27,14 @@ if nargin < 11
     strOut = 'U';
 end
 
+if nargin < 12
+    tVec = [];
+end
+
+if nargin < 13
+    interp = 'latex';
+end
+
 if nx > 0
     strK =  sprintf(', $n_K$ = %d', nx);
 else
@@ -42,14 +52,19 @@ cl = lines;
 lw = 1;
 fs = 10;
 kplot = 60: length(ysim_val);
+if isempty(tVec)
+    xk = 1:length(kplot);
+else
+    xk = tVec(kplot);
+end
 
 noSubIn = size(Inputs_val,1);
 noSubOut =  min(size(ysim_val));
 noSub = noSubOut + noSubIn -1;
 subplot(noSub,1,1)
-plot(Inputs_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
+plot(xk,Inputs_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
 hold on;
-plot(Inputs_val(2,kplot),'LineWidth',lw,'Color', cl(2,:)) %3
+plot(xk,Inputs_val(2,kplot),'LineWidth',lw,'Color', cl(2,:)) %3
 grid on; axis tight; ylim([0 2+0.2])
 ylabel('$C_T$ [-]','interpreter','latex','Fontsize',fs);
 
@@ -76,9 +91,9 @@ set(gca,'fontsize', fs)
 if noSubIn > 2
     subplot(noSub,1,2)
     if isempty(Vinf)
-        plot(Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
+        plot(xk,Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
     else
-        plot(Vinf(kplot),'k','LineWidth',lw); hold on; plot(Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:));
+        plot(xk,Vinf(kplot),'k','LineWidth',lw); hold on; plot(xk,Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:));
     end
     grid on; axis tight
     if Vin && ~isempty(Vinf)
@@ -94,7 +109,7 @@ if noSubIn > 2
     
     if noSubIn > 3 %&& noSub ~= 4
         subplot(noSub,1,3)
-        plot(Inputs_val(4,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
+        plot(xk,Inputs_val(4,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
         ylabel('$V_1$ [m/s]','interpreter','latex','Fontsize',fs);
         grid on; axis tight
     end
@@ -110,9 +125,9 @@ end
 for idx = 1: noSubOut
     idxT = 2-mod(idx,2);
     subplot(noSub,1,noSub - (noSubOut-idx))
-    plot(Deterministic_val(idx,kplot),'LineWidth',lw,'Color', cl(idxT,:)); %1
+    plot(xk,Deterministic_val(idx,kplot),'LineWidth',lw,'Color', cl(idxT,:)); %1
     hold on;
-    plot(ysim_val(idx,kplot),'Color',[0,0,0],'LineWidth',lw,'LineStyle','--') %3
+    plot(xk,ysim_val(idx,kplot),'Color',[0,0,0],'LineWidth',lw,'LineStyle','--') %3
     grid on; axis tight;
     pos = axis; axis([pos(1:3), pos(4)+0.3]);
 
@@ -123,9 +138,32 @@ for idx = 1: noSubOut
     set(gca,'fontsize', fs)
     
 end
+if ~isempty(tVec)
+    xlabel('Time (s)','interpreter','latex','Fontsize',fs);
+end
 
+if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
+    for hTxt = findall(fig1,'Type','text')'
+        set(hTxt,'String',latex2tex(get(hTxt,'String')),'Interpreter','tex');
+    end
+    for hLeg = findall(fig1,'Type','legend')'
+        set(hLeg,'String',cellfun(@latex2tex,hLeg.String,'UniformOutput',false),'Interpreter','tex');
+    end
+    set(findall(fig1,'Type','axes'),'TickLabelInterpreter','tex');
+    for hAx = findall(fig1,'Type','axes')'
+        hAx.Title.FontWeight = 'normal';
+    end
+end
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
 print(gcf,fullfile(dirFig,['Val',strVal1]), '-dpng');
 print(gcf,fullfile(dirFig,['Val',strVal1]), '-depsc');
+end
+
+function str = latex2tex(str)
+% latex2tex LaTeX label to TeX: no $, \inf -> \infty, units [..] -> (..)
+str = strrep(str,'$','');
+str = strrep(str,'\inf}','\infty}');
+str = regexprep(str,'\[([^\]]*)\]','($1)');
+end

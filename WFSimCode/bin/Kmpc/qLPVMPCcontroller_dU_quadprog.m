@@ -97,6 +97,32 @@ if sol.k>=1
     xinit(mpc.Mp) = sol.turbine.power;
     xinit(mpc.Mu) = sol.turbine.CT_prime;
     
+    % Koopman power model (KoopAIC = 0) without yaw optimization: fixed yaw
+    % trajectory over the horizon, the MPC optimizes CT_prime only
+    % OptYaw = 0: yaw 0 (pure AIC), OptYaw = 2: static yaw of findMaxYaw
+    % (as for KoopAIC = 1, OptYaw = 1), filtered and rate limited as applied.
+    % The static yaw depends on the power demand only: findMaxYaw scales the
+    % power of both turbines with the wind speed^3, so its maximum (18 deg)
+    % does not depend on the wind speed and is computed once without V1
+    mpc.yawFix = [];
+    if ~mpc.KoopAIC && mpc.OptYaw ~= 1
+        yawTarget = 0;
+        if mpc.OptYaw == 2 && Wp.turbine.N == 2 && mpc.Pref(sol.k) > mpc.Pgreedy
+            if ~isfield(mpc,'yawStatic')
+                mpc.yawStatic = findMaxYaw(1,Wp);
+            end
+            yawTarget = mpc.yawStatic;
+        end
+        tauYaw = -mpc.den(2);
+        mpc.yawFix = zeros(mpc.Nh,1);
+        yawPrev = sol.turbine.Phi(1);
+        for idxH = 1:mpc.Nh
+            yawNext = tauYaw*yawPrev + (1-tauYaw)*yawTarget;
+            mpc.yawFix(idxH) = yawPrev + min(max(yawNext - yawPrev,-1),1);
+            yawPrev = mpc.yawFix(idxH);
+        end
+    end
+    
     % nl-1 is number of times the rotor-averaged wind speeds in the horizon
     % will be updated during one sample. If nl=1, the rotor-averaged wind speeds
     % are taken constant in the horizon
@@ -117,7 +143,21 @@ if sol.k>=1
         mpc  = Matsys(Wp,mpc,mpc.Nh);
         
         % builf matrices for power estimation
-        mpc.Kp = MatsysP(K,mpc.Nh);
+        if mpc.KoopFeat
+            % input-only power model with input features, linearized around
+            % the current inputs held over the horizon (as mpc.utemp)
+            uNow = [sol.turbine.CT_prime; sol.turbine.Phi(1)];
+            if isempty(mpc.featM) % steady state of the current inputs
+                [~, mpc.featM] = powerFeatures(uNow, K.feat.featureSet, K.feat.tau);
+            end
+            if isempty(mpc.urS) % no past Ur: steady state
+                mpc.urS = struct('M', sol.turbine.Ur, 'UrPrev', sol.turbine.Ur, 'k', 1);
+            end
+            x0 = koopFeatState(K.feat, sol.turbine.Ur, mpc.urS);
+            mpc.Kp = MatsysPfeat(K.feat, x0, mpc.featM, repmat(uNow, 1, mpc.Nh));
+        else
+            mpc.Kp = MatsysP(K,mpc.Nh);
+        end
         
         % solve the optimization problem and calculate time
         tic
@@ -202,6 +242,9 @@ else
     temp0          = reshape(aValue_approx_K,[2*Wp.turbine.N-1,mpc.Nh]);%estimated wind used
     tempPhiK           = temp0(3,1); %zeros(Wp.turbine.N,1);
     tempPhi = [tau*sol.turbine.Phi(1) + (1-tau)* tempPhiK;0];
+    if ~isempty(mpc.yawFix) % fixed yaw trajectory (already filtered)
+        tempPhi = [mpc.yawFix(1);0];
+    end
     %phi = [tempPhi;0];
     temp = tau*sol.turbine.CT_prime + (1-tau)* temp0(1:2,1);
     %temp = temp0(1:2,1);
@@ -212,6 +255,12 @@ phiRLim = 1;
 aDiff = tempPhi(1) - sol.turbine.Phi(1);
 phi = [sol.turbine.Phi(1) + min(max(aDiff,-phiRLim),phiRLim), tempPhi(2:end)];
 
+
+% Update the moving means of the input-only power model with the applied inputs
+if mpc.KoopFeat && ~isempty(mpc.featM)
+    [~, mpc.featM] = powerFeatures([CT_prime; phi(1)], K.feat.featureSet, K.feat.tau, mpc.featM);
+    [~, mpc.urS] = koopFeatState(K.feat, sol.turbine.Ur, mpc.urS);
+end
 
 %% Update the effective wind speed buffers
 vecLastUr(:,1:end-1)= vecLastUr(:,2:end);
