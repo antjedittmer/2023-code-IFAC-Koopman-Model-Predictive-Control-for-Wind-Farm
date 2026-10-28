@@ -2,9 +2,9 @@ function fig = plotWFSimTimeseriesTex(pd, dirFig, fileBase)
 % plotWFSimTimeseriesTex closed-loop time series as plotWFSimTimeseriesLatex2
 % with the TeX interpreter, the operating mode in the title and the time in
 % s on the x axis (thesis figures). Instead of legends, the title of the
-% first subplot names the signals in their line colors (Farm: P_ref, P_WF,
+% first subplot names the signals in their line colors (Farm signals: P_ref, P_WF,
 % P_WF,est (WRC-AIC with the input-only model, pd.P_est), P_greedy, V_inf;
-% Turbine: V_r1, V_r2 and their estimates (AIC); the turbine
+% Turbine signals: V_r1, V_r2 and their estimates (AIC); the turbine
 % colors also apply to C_T' and yaw), so no data are covered; line styles
 % go into the caption. The data pd are saved per run by
 % WFSim_demo (<figure name>_plotData.mat), so the figure can be recreated
@@ -14,7 +14,8 @@ function fig = plotWFSimTimeseriesTex(pd, dirFig, fileBase)
 % - pd: struct with time, Power, CT_prime, Phi, V, V_est, u1, uInf, Pref,
 %   Pgreedy, JQ (MW), JR and the settings controller, OptYaw, KoopAIC, KoopFeat;
 %   optional: modeStr (title), update (update flags of the adaptive AIC,
-%   shown in an additional subplot), showGreedy, showYaw (default true)
+%   shown in an additional subplot, also if all zero: non-adaptive run),
+%   showGreedy, showYaw (default true)
 % - dirFig, fileBase (optional): save as <fileBase>_Tex (.fig, .png, .eps)
 
 time = pd.time;
@@ -32,7 +33,7 @@ else
 end
 if isfield(pd,'modeStr'), modeStr = pd.modeStr; end
 titleStr = sprintf('%s: TE = %.1f kW, AA = %.1e', modeStr, pd.JQ*1e3, pd.JR);
-showUpdate = isfield(pd,'update') && any(pd.update);
+showUpdate = isfield(pd,'update'); % adaptive AIC runs, also without update (all zero)
 showGreedy = ~isfield(pd,'showGreedy') || pd.showGreedy;
 showYaw = ~isfield(pd,'showYaw') || pd.showYaw;
 nSub = 4 + showYaw + showUpdate;
@@ -59,26 +60,29 @@ ax = gobjects(nSub,1);
 ax(1) = subplot(nSub,1,1);
 stairs(time,pd.Pref(time)/1e6,'k','linewidth',lw); hold on; grid on;
 stairs(time,sum(pd.Power(:,time))/1e6,'-.','linewidth',lw+0.2,'color',cl(4,:));
-keyNames = {'Farm:','P_{ref}','P_{WF}'};
-keyColors = [0 0 0; 0 0 0; cl(4,:)];
+farmNames = {'P_{ref}','P_{WF}'};
+farmColors = [0 0 0; cl(4,:)];
 if showEstP % estimated farm power (dark purple)
     clPest = [0.30 0.05 0.35];
     stairs(time,pd.P_est(time)/1e6,':','linewidth',lw+0.4,'color',clPest);
-    keyNames{end+1} = 'P_{WF,est}';
-    keyColors(end+1,:) = clPest;
+    farmNames{end+1} = 'P_{WF,est}';
+    farmColors(end+1,:) = clPest;
 end
 if showGreedy
     stairs(time,pd.Pgreedy*ones(size(time))/1e6,':','linewidth',lw+0.2,'color',cl(5,:));
-    keyNames{end+1} = 'P_{greedy}';
-    keyColors(end+1,:) = cl(5,:);
+    farmNames{end+1} = 'P_{greedy}';
+    farmColors(end+1,:) = cl(5,:);
 end
-keyNames = [keyNames, {'V_\infty',' Turbine:','V_{r1}','V_{r2}'}];
-keyColors = [keyColors; 0 0 0; 0 0 0; cl(1:2,:)];
+farmNames{end+1} = 'V_\infty';
+farmColors(end+1,:) = [0 0 0];
+turbNames = {'V_{r1}','V_{r2}'};
+turbColors = cl(1:2,:);
 if showEst % estimated effective wind speeds (dark blue, dark red)
-    keyNames = [keyNames, {'V_{r1,est}','V_{r2,est}'}];
-    keyColors = [keyColors; 0 0 0.7; 0.7 0 0];
+    turbNames = [turbNames, {'V_{r1,est}','V_{r2,est}'}];
+    turbColors = [turbColors; 0 0 0.7; 0.7 0 0];
 end
-strLeg = colorTitle(keyNames, keyColors);
+strLeg = ['Farm sig.: ', colorTitle(farmNames, farmColors), ...
+    '; Turbine sig.: ', colorTitle(turbNames, turbColors)];
 ylabel('P_{WF} (MW)');
 title({titleStr, strLeg},'FontWeight','normal');
 
@@ -126,6 +130,7 @@ for idx = 1:numel(ax)
     set(ax(idx),'FontSize',fs,'TickLabelInterpreter','tex');
 end
 ax(1).TitleFontSizeMultiplier = 11/fs; % title 11 pt (default 1.1*fs), fits the figure width
+ax(end).XLabel.FontSize = 12; % as all thesis figures
 axP = ax(1); axCT = ax(3); axUr = ax(end - showUpdate);
 ylim(axCT,[-0.1 2.1]);
 tP = time(time >= 60); % without the start-up
@@ -155,7 +160,7 @@ parts = cell(size(names));
 for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
-str = strjoin(parts, '  ');
+str = strjoin(parts, ', ');
 end
 
 function printFixedWidth(h, fName)

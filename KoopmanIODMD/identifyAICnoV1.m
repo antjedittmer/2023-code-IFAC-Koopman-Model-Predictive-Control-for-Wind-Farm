@@ -1,10 +1,10 @@
-function model = identifyAICnoV1(filenameId, t0)
+function model = identifyAICnoV1(filenameId, t0, fileOut)
 % identifyAICnoV1 Koopman model of the effective wind speeds for the
 % adaptive AIC without the measured wind speed V1 (thesis Section
 % "Koopman Matrix Creation" with the thrust control signals only,
 % w = [CT1; CT2] instead of [V1; CT1; CT2], no yaw):
 % phi(k+1) = A phi(k) + B w(k), phi = [Ur1 Ur2 Ur1^2 Ur2^2 Ur1^3 Ur2^3].
-% Saved as DataInOutWfSim/AdaptiveAIC/KoopAICnoV1.mat with the correlation
+% Saved as DataInOutWfSim/AdaptiveAIC/<fileOut> with the correlation
 % matrices L = G+ Gw', Lu = Gw Gw' (sums over the samples, as in the thesis)
 % as initial values of the online update.
 %
@@ -12,13 +12,17 @@ function model = identifyAICnoV1(filenameId, t0)
 % - filenameId: open-loop data (default: random CT levels at V_inf = 7 m/s)
 % - t0: first sample (s), default 2: the start-up of the wake (Vr1 = Vr2)
 %   is needed, the closed loop starts from the undisturbed flow
+% - fileOut: file name of the model (default KoopAICnoV1.mat), e.g.
+%   KoopAICnoV1_Vinf9.mat for the offline model at 9 m/s
 
 if nargin < 1 || isempty(filenameId)
     filenameId = 'Vinf7dot0_sowfa_2turb_ct_levels';
 end
-if nargin < 2, t0 = 2; end
+if nargin < 2 || isempty(t0), t0 = 2; end
+if nargin < 3 || isempty(fileOut), fileOut = 'KoopAICnoV1.mat'; end
 mainDir = fileparts(fileparts(mfilename('fullpath')));
-S = load(fullfile(mainDir,'DataT2OLWFSim','Vinf7dot0_OL_Ct',filenameId),'Ur1','Ur2','Ct1','Ct2');
+dirData = [extractBefore(filenameId,'_sowfa'),'_OL_Ct']; % folder of WFSim_demo, e.g. Vinf7dot0_OL_Ct
+S = load(fullfile(mainDir,'DataT2OLWFSim',dirData,filenameId),'Ur1','Ur2','Ct1','Ct2');
 k = t0:numel(S.Ur1);
 Ur = [S.Ur1(k); S.Ur2(k)];
 W = [S.Ct1(k); S.Ct2(k)];
@@ -37,6 +41,6 @@ model.maxAbsEig = max(abs(eig(model.A)));
 
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 if ~isfolder(dirOut), mkdir(dirOut); end
-save(fullfile(dirOut,'KoopAICnoV1.mat'),'model');
-fprintf('KoopAICnoV1: %d samples, max|eig(A)| = %.4f\n', N, model.maxAbsEig);
+save(fullfile(dirOut,fileOut),'model');
+fprintf('%s: %d samples, max|eig(A)| = %.4f\n', fileOut, N, model.maxAbsEig);
 end

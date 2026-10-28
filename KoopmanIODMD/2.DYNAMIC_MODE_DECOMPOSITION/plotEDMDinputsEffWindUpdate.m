@@ -1,9 +1,12 @@
-function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,Pvec,displayOff,Vinf,tVec,interp)
+function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,Pvec,displayOff,Vinf,tVec,interp,marks)
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
 % Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
-% in (), no legends: the first title names WT1, WT2 and V_inf in their colors)
+% in (), no legends: the first title names the measured signals WT1, WT2,
+% V_inf and the estimated signals V_r1,est, V_r2,est in their colors)
+% Optional marks: table with Time_s and Color (plotAICnoV1Sigma), colored
+% lines at these times in the update subplot (tVec required)
 
 if nargin < 6
     Vin = 0;
@@ -32,6 +35,10 @@ if nargin < 13
     interp = 'latex';
 end
 
+if nargin < 14
+    marks = [];
+end
+
 if nx > 0
     strK =  sprintf(', $n_K$ = %d', nx);
 else
@@ -40,14 +47,19 @@ end
 
 fig1 = figure;
 posDefault = get(gcf, 'position');
-set(gcf, 'position', [posDefault(1:2),posDefault(3),posDefault(4)*1.2]);
+hFac = 1.2;
+if strcmpi(interp,'tex') % thesis: height as the closed-loop plots (plotWFSimTimeseriesTex, 5 subplots)
+    hFac = 1.6;
+end
+set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*hFac]);
 cl = colormap('lines');
 lw = 1;
 fs = 10;
-kplot = 60: length(ysim_val);
 if isempty(tVec)
+    kplot = 60: length(ysim_val);
     xk = 1:length(kplot);
-else
+else % time axis: the data start after the start-up (t0), show all
+    kplot = 1: length(ysim_val);
     xk = tVec(kplot);
 end
 
@@ -101,7 +113,7 @@ grid on; axis tight;
 pos = axis; axis([pos(1:3), pos(4)+0.3]);
 %xlabel('k [-]','interpreter','latex')
 ylabel('$U_{r1}$ [m/s]','interpreter','latex')
-lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal')
+lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 %  0.6155    0.4802    0.2702    0.0397
 lgh.Position = [lgh.Position(1) + 0.02,lgh.Position(2:4)];
 legend('boxoff')
@@ -114,7 +126,7 @@ plot(xk,ysim_val(2,kplot),'Color',[0.6, 0, 0.0],'LineWidth',lw,'LineStyle','--')
 grid on; axis tight
 pos = axis; axis([pos(1:3), pos(4)+0.3]);
 ylabel('$U_{r2}$ [m/s]','interpreter','latex','fontsize', fs)
-lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal')
+lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 lgh.Position = [0.2595    0.3585    0.2702    0.0397];
 legend('boxoff')
 set(gca,'fontsize', fs)
@@ -124,6 +136,23 @@ if isempty(tVec)
     plot(min((Pvec-1),1),'k','LineWidth',lw); %1
 else
     plot(xk,min((Pvec(kplot)-1),1),'k','LineWidth',lw);
+end
+if ~isempty(marks) % updates after which the model is shown elsewhere
+    hold on;
+    for idx = find(marks.Time_s(:)' >= xk(1) & marks.Time_s(:)' <= xk(end))
+        % first sample (initial model): shifted to be visible next to the axis
+        tMark = max(marks.Time_s(idx), xk(1) + 0.004*(xk(end)-xk(1)));
+        plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2, 'LineStyle', '-');
+        % time stamp at the bottom, right of the line (left if TextSide = -1,
+        % with more space, the updates before are dense)
+        side = 1;
+        if ismember('TextSide', marks.Properties.VariableNames), side = marks.TextSide(idx); end
+        hAlign = {'right','left'};
+        gap = 0.008 + 0.012*(side < 0);
+        text(tMark + side*gap*(xk(end)-xk(1)), 0.05, sprintf('%d s', marks.Time_s(idx)), ...
+            'Color', marks.Color(idx,:), 'FontSize', 12, 'FontWeight', 'bold', ...
+            'VerticalAlignment', 'bottom', 'HorizontalAlignment', hAlign{(side > 0) + 1});
+    end
 end
 
 grid on; axis tight
@@ -135,8 +164,11 @@ else
 end
 ylabel('$Update$ ','interpreter','latex')
 axis tight;
+if ~isempty(tVec) % zero line visible above the axis, as the closed loop
+    ylim([-0.1 1.1]);
+end
 
-%legend('P','Location','northeast','interpreter','latex','fontsize',fs,'orientation','horizontal')
+%legend('P','Location','northeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 %legend('boxoff')
 set(gca,'fontsize', fs)
 
@@ -148,10 +180,12 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
     axs = findall(fig1,'Type','axes');
     set(axs,'TickLabelInterpreter','tex');
     axTop = axs(end); % first subplot
-    axTop.Title.String = {axTop.Title.String, colorKey({'WT1','WT2','V_\infty','V_{r1,est}','V_{r2,est}'}, ...
-        [cl(1,:); cl(2,:); 0 0 0; 0 0 0.6; 0.6 0 0])};
+    axTop.Title.String = {axTop.Title.String, ...
+        ['Measured sig.: ', colorKey({'WT1','WT2','V_\infty'}, [cl(1,:); cl(2,:); 0 0 0]), ...
+        '; Estimated sig.: ', colorKey({'V_{r1,est}','V_{r2,est}'}, [0 0 0.6; 0.6 0 0])]};
     axTop.Title.FontWeight = 'normal';
     axs(1).YLabel.String = 'Update (-)';
+    set([axs.XLabel], 'FontSize', 12);
 end
 
 %sys_red{1,1}.Xint = xo;
@@ -181,7 +215,7 @@ parts = cell(size(names));
 for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
-str = strjoin(parts, '   ');
+str = strjoin(parts, ', ');
 end
 
 function printFixedWidth(h, fName)
