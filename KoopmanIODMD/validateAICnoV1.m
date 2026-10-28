@@ -12,8 +12,9 @@ function R = validateAICnoV1(filenameVal, t0, ad, marks)
 % - ad: settings of the online update (koopmanAdaptStep, simAdaptiveKoopman),
 %   default h = 5, nu = 0.15 m/s, resetState = true, trigger on Vr1 only
 %   (trigChannels = 1, as in the controller)
-% - marks: update times marked in color in the adaptive plot (output sel
-%   of plotAICnoV1Sigma: the models shown with their singular values)
+% - marks: times marked in color in the adaptive plot, table with Time_s
+%   and Color (default aicNoV1ModelTimes: the models shown with their
+%   singular values in plotAICnoV1Sigma), [] for none
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
@@ -24,7 +25,7 @@ if nargin < 1 || isempty(filenameVal)
 end
 if nargin < 2 || isempty(t0), t0 = 240; end
 if nargin < 3 || isempty(ad), ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
-if nargin < 4, marks = []; end
+if nargin < 4, marks = aicNoV1ModelTimes(); end
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 modelFile = fullfile(dirOut,'KoopAICnoV1.mat');
 if ~isfile(modelFile)

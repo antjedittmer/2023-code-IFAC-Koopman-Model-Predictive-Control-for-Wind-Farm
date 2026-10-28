@@ -12,8 +12,8 @@ function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad, tSel)
 % - dirFig: folder of AdaptiveAIC_OL_Sigma (.eps, .png), default
 %   DataInOutWfSim/AdaptiveAIC
 % - filenameVal, t0, ad: validation data and update settings (validateAICnoV1)
-% - tSel: times (s) of the shown models, at most 4 (default: initial, after a
-%   quarter, half and all of the updates)
+% - tSel: table with the times (Time_s) and colors (Color) of the shown
+%   models, at most 4 (default aicNoV1ModelTimes: 240, 5100, 6000, 8000 s)
 %
 % Outputs
 % - fig: figure handle
@@ -27,7 +27,7 @@ if nargin < 1 || isempty(dirFig), dirFig = dirOut; end
 if nargin < 2 || isempty(filenameVal), filenameVal = 'sowfa_2turb_ct_levels_val'; end
 if nargin < 3 || isempty(t0), t0 = 240; end
 if nargin < 4 || isempty(ad), ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
-if nargin < 5, tSel = []; end
+if nargin < 5 || isempty(tSel), tSel = aicNoV1ModelTimes(); end
 
 % Offline models at 7 m/s (initial model of the update) and 9 m/s
 file7 = fullfile(dirOut,'KoopAICnoV1.mat');
@@ -44,22 +44,12 @@ k = t0:numel(S.Ur1);
 Ur = [S.Ur1(k); S.Ur2(k)];
 W = [S.Ct1(k); S.Ct2(k)];
 
-% Shown models: at the times tSel (s) or initial, after a quarter, half and
-% all of the updates (a single update hardly changes the model, the initial
-% correlation matrices are sums over the whole identification data)
+% Shown models at the times tSel, colors as the marks in the validation
+% plot (aicNoV1ModelTimes)
 [~, upd] = simAdaptiveKoopman(model7, Ur, W, true, ad);
-if ~isempty(tSel)
-    saveAt = tSel - k(1) + 1;
-else
-    iUpd = find(upd);
-    saveAt = unique([1, iUpd(ceil(numel(iUpd)*[0.25 0.5 1]))]);
-end
+saveAt = tSel.Time_s' - k(1) + 1;
 [~, ~, ~, ~, models] = simAdaptiveKoopman(model7, Ur, W, true, ad, saveAt);
-% Colors: initial model gray, updated models in colors not used for WT1,
-% WT2 (lines 1, 2), the same colors mark the update times in the
-% validation plot (validateAICnoV1)
-cl = lines(5);
-cl = [0.5 0.5 0.5; cl(3:2+numel(models)-1,:)];
+cl = tSel.Color;
 sel = table(k([models.k])', arrayfun(@(m) sum(upd(1:m.k)), models)', cl, ...
     'VariableNames', {'Time_s','NoUpdates','Color'});
 

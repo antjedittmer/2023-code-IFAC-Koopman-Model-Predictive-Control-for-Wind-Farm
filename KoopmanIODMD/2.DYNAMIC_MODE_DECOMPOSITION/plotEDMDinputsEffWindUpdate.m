@@ -109,7 +109,7 @@ grid on; axis tight;
 pos = axis; axis([pos(1:3), pos(4)+0.3]);
 %xlabel('k [-]','interpreter','latex')
 ylabel('$U_{r1}$ [m/s]','interpreter','latex')
-lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal')
+lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 %  0.6155    0.4802    0.2702    0.0397
 lgh.Position = [lgh.Position(1) + 0.02,lgh.Position(2:4)];
 legend('boxoff')
@@ -122,7 +122,7 @@ plot(xk,ysim_val(2,kplot),'Color',[0.6, 0, 0.0],'LineWidth',lw,'LineStyle','--')
 grid on; axis tight
 pos = axis; axis([pos(1:3), pos(4)+0.3]);
 ylabel('$U_{r2}$ [m/s]','interpreter','latex','fontsize', fs)
-lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal')
+lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 lgh.Position = [0.2595    0.3585    0.2702    0.0397];
 legend('boxoff')
 set(gca,'fontsize', fs)
@@ -152,7 +152,7 @@ end
 ylabel('$Update$ ','interpreter','latex')
 axis tight;
 
-%legend('P','Location','northeast','interpreter','latex','fontsize',fs,'orientation','horizontal')
+%legend('P','Location','northeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 %legend('boxoff')
 set(gca,'fontsize', fs)
 
