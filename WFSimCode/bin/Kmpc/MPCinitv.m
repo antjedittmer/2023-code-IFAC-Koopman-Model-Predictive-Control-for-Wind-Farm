@@ -65,6 +65,9 @@ elseif refstairs == 0
     mpc.Pref(N0+1:end)  = 0.8*mpc.Pgreedy + 0.35*mpc.Pgreedy*mpc.AGCdata(1:NN+mpc.Nh-N0);% according to S. Boersma et al.
 elseif refstairs == 10
     mpc.Pref = 3.1*10^6*ones(NN+mpc.Nh,1);
+elseif refstairs == 20 % adaptive AIC test case: step 1.72 MW -> 2.58 MW at k = 2500
+    mpc.Pref = 1.72e6*ones(NN+mpc.Nh,1);
+    mpc.Pref(2500:end) = 2.58e6;
 else  
     Nsep = round(NN/(5*Wp.sim.h));
     mpc.Pref(1:Nsep)      = 2e6;%0.9*mpc.Pgreedy;
@@ -100,7 +103,25 @@ koopmanDirP = fullfile([DataKoopman,'_MIMO_PT'],['Vin_',VinfStr,'_states',Kstr])
 %     koopmanDir = fullfile([DataKoopman,'_MIMO'],['Vin_',VinfStr,'_states',Kstr]);
 % end
 matKoopman = sprintf('stateName_K%s_P%d.mat',Kstr,PolyLiftingFunction);
-KWFModel = load(fullfile(koopmanDir,matKoopman));
+if isfield(mpc,'AICnoV1') && mpc.AICnoV1
+    % Adaptive AIC without V1: effective wind speed model with the inputs
+    % CT1, CT2 (identifyAICnoV1), updated online if mpc.adaptive
+    tmp = load(fullfile(fileparts(DataKoopman),'AdaptiveAIC','KoopAICnoV1.mat'),'model');
+    mpc.adModel = tmp.model;
+    mpc.adaptive = sol.update;
+    % after an update the estimator continues from the measured Ur (resetState),
+    % without it the free-running estimate diverges (validateAICnoV1); the
+    % trigger uses Vr1 only, so the model is updated on wind speed changes
+    % and not because of the larger wake error of Vr2 at constant wind
+    mpc.ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1);
+    KWFModel.sys_red = ss(tmp.model.A,tmp.model.B,eye(2,tmp.model.n),zeros(2,size(tmp.model.B,2)),1);
+    KWFModel.Koop = struct('A',tmp.model.L,'G',tmp.model.Lu);
+    % The power model (KoopAIC = 0) is not used for the AIC (KoopAIC = 1);
+    % the 8 m/s model only keeps the second QP in quadprog_sol running
+    koopmanDirP = fullfile([DataKoopman,'_MIMO_PT'],['Vin_Vinf8dot0_states',Kstr]);
+else
+    KWFModel = load(fullfile(koopmanDir,matKoopman));
+end
 
 KWFModelP = load(fullfile(koopmanDirP,matKoopman));
 
@@ -109,6 +130,11 @@ K.A = KWFModel.sys_red.A;
 K.B = KWFModel.sys_red.B;
 K.AKoop = KWFModel.Koop.A;
 K.GKoop = KWFModel.Koop.G;
+if isfield(mpc,'AICnoV1') && mpc.AICnoV1
+    % Estimated Ur limited to a physical range: the non-adaptive estimate
+    % without V1 diverges after the wind ramp otherwise (wfmodelNL)
+    K.UrLim = [2 12];
+end
 
 % initial states: current Vinf as effective wind speeds  K.xprev = KWFModel.xo;
 K.xprev = koopmanstateextensionWFSim(sol.u(1:2,1),PolyLiftingFunction,KoopmanStates);
@@ -119,6 +145,21 @@ K.xprev = koopmanstateextensionWFSim(sol.u(1:2,1),PolyLiftingFunction,KoopmanSta
 % KP.D = KWFModelP.sys_red.D;
 
 K.KPsys = KWFModelP.sys_red; 
+
+% Input-only Koopman power model with input features (KoopFeat = 1 in
+% WFSim_demo): replaces KPsys in the prediction of the farm power
+if isfield(mpc,'KoopFeat') && mpc.KoopFeat
+    featFile = 'KoopFeatModel.mat'; % KoopFeat = 1 (exportPowerFeatureModel)
+    if mpc.KoopFeat > 1 % further models (runKoopStatesCL)
+        featFile = sprintf('KoopFeatModel%d.mat', mpc.KoopFeat);
+    end
+    tmp = load(fullfile(fileparts(DataKoopman),'PowerInputsOnly',featFile),'model');
+    K.feat = tmp.model;
+    mpc.featM = []; % moving means of the features, initialized at the first step
+    mpc.urS = []; % past Ur and moving mean of Ur (states DUr, Ur(k-1))
+else
+    mpc.KoopFeat = 0;
+end
 % K.AKoop = KWFModelP.Koop.A;
 % K.GKoop = KWFModelP.Koop.G;
 

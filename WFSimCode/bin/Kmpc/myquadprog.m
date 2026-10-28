@@ -69,6 +69,25 @@ flags.detailedExitMsg = detailedExitMsg;
 flags.verbosity = verbosity;
 flags.caller = 'quadprog';
 
-[X, fval] = ...
-    ipqpdense(full(H), f, A, B, Aeq, Beq, lb, ub, X0, flags, ...
-    options, defaultopt);
+% The private solver ipqpdense changed its interface after R2020a (e.g.
+% R2023a: option ObjectiveSenseManager); then use quadprog with the same
+% algorithm and tolerances
+persistent useQuadprog
+if isempty(useQuadprog)
+    useQuadprog = false;
+end
+if ~useQuadprog
+    try
+        [X, fval] = ...
+            ipqpdense(full(H), f, A, B, Aeq, Beq, lb, ub, X0, flags, ...
+            options, defaultopt);
+        return
+    catch
+        useQuadprog = true;
+    end
+end
+qpOptions = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', ...
+    'Display', 'off', 'MaxIterations', defaultopt.MaxIter, ...
+    'OptimalityTolerance', defaultopt.TolFun, 'StepTolerance', defaultopt.TolX, ...
+    'ConstraintTolerance', defaultopt.TolCon);
+[X, fval] = quadprog(H, f, A, B, [], [], [], [], [], qpOptions);

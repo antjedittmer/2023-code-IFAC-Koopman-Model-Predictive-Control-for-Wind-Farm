@@ -52,12 +52,18 @@ for nn = 1:mpc.Nh
         structPrev = mpc.structPrev;
         
         K.Xf1(:,nn) =  K.A*mpc.xprev+K.B*uIn;
+        if isfield(K,'UrLim') % physical range of the estimate (AIC without V1)
+            K.Xf1(1:ny,nn) = min(max(K.Xf1(1:ny,nn),K.UrLim(1)),K.UrLim(2));
+        end
         [tmp,~,structPrev] = K_psi([K.Xf1(1:ny,1); uIn],polyKoop,nKoop,structPrev);
         K.Xf1(:,nn) = tmp(1:size(K.A,1));
         mpc.structPrev = structPrev;
     else
         %K.Xf(:,nn) =  K.A*K.Xf(:,nn-1)+K.B*uIn;
         K.Xf1(:,nn) =  K.A*K.Xf1(:,nn-1)+K.B*uIn;
+        if isfield(K,'UrLim')
+            K.Xf1(1:ny,nn) = min(max(K.Xf1(1:ny,nn),K.UrLim(1)),K.UrLim(2));
+        end
         [tmp,~,structPrev] = K_psi([K.Xf1(1:ny,nn); uIn],polyKoop,nKoop,structPrev);
         K.Xf1(:,nn) = tmp(1:size(K.A,1));
         

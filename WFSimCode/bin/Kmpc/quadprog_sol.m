@@ -40,6 +40,10 @@ if isEst == 1
     AcK0d = [AcK0;- diagDiff; diagDiff];
     bc0K_ = [- repmat([mpc.Ulim_lower(1:2); 0], Nh,1); ...
         repmat([mpc.Ulim_upper(1:2); 22], Nh,1)];
+    if isfield(mpc,'yawFix') && ~isempty(mpc.yawFix) % fixed yaw trajectory
+        bc0K_(3:nuK:Nh*nuK) = -mpc.yawFix;
+        bc0K_(Nh*nuK+3:nuK:end) = mpc.yawFix;
+    end
     bcK = bc0K_ - AcK0 * mpcK.utemp;
     bcKd = [bcK; [- repmat([-2;-2;-1], Nh-1,1); repmat([2;2;1], Nh-1,1)]];
     

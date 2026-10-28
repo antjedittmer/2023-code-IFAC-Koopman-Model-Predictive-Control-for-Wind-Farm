@@ -21,9 +21,13 @@ nuK = length(uIn);
 L = mpc.Kp.L;
 S = mpc.Kp.S;
 
-nK = size(L,2)-1;
-xinitUK = K_psi([sol.turbine.Ur; wIn],0,nK);
-xinitK = [xinitUK(1:nK);dIn];
+if isfield(mpc.Kp,'xinit') % input-only power model (MatsysPfeat): P = L + S*U
+    xinitK = mpc.Kp.xinit;
+else
+    nK = size(L,2)-1;
+    xinitUK = K_psi([sol.turbine.Ur; wIn],0,nK);
+    xinitK = [xinitUK(1:nK);dIn];
+end
 
 % Jk =E'QE+(Uk-Uss)'R(Uk-Uss): E = Qsum*Qsel*(Lx+SUk-Pref % E : error  Assume U = CT_prime
 mpc.utemp = kron(ones(mpc.Nh,1),uIn); %diag(mpc.Ct_ss));
