@@ -1,4 +1,4 @@
-function [nonlobs,stateName] = koopmanstateextension(QQ_u, QQ_v, QQ_p,rho,Deterministic,PolyLiftingFunction,noStates)
+ function [nonlobs,stateName] = koopmanstateextension(QQ_u, QQ_v, QQ_p,rho,Deterministic,PolyLiftingFunction,noStates)
 if nargin < 5
     Deterministic = [];
 end

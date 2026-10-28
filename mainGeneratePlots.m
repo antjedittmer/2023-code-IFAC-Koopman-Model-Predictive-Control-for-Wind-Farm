@@ -8,7 +8,7 @@ addpath('KoopmanIODMD');
 R = 1e-6; % Weights on control input changed (J = sum(e'Qe + dU'Rdu)
 refstairs = 0; %refstairs: Set reference to stairs
 measured = 1; %measured (for Koopman model): Use measured values as feedback
-KoopmanStates = 6; %KoopmanStates (for Koopman model):  Number of Koopman states
+KoopmanStates = 12; %KoopmanStates (for Koopman model):  Number of Koopman states
 PolyLiftingFunction = 0; %PolyLiftingFunction(for Koopman model): Higher order lifting function 2,4,6,10,12,14,18,24
 controller = 0; %controller: integer switch: Open-loop: 0,  Wfsim NMPC: 1, KMPC: 2
 Vinf = 8;
@@ -34,7 +34,6 @@ ControlSetStr = 'sowfa_2turb_yaw_steps';
 WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,controller,ControlSetStr,Vinf,vinfstr);
 fig = gcf; fig.Name = sprintf('OL_%s',ControlSetStr);
 
-
 runWFSimAnimationPlots;
 
 %% 2. Generate Koopman Sys Id for windfarm controller
@@ -43,9 +42,9 @@ runWFSimAnimationPlots;
 yawmode = 1; %0 for ct (pitch/torque) control, 1 for additional yaw control
 filenameId = 'Vinf8dot0_sowfa_2turb_yaw_noise_step';
 filenameVal = 'Vinf8dot0_sowfa_2turb_yaw_steps'; %'Vinf8dot0_sowfa_2turb_alm_turbl.mat'; %
-noStates = 6; %number of Koopman states 
+noStates = 6; %6; %number of Koopman states 
 useVal = 1; % use extra data for validation
-percentTrain = .6;
+percentTrain = .9;
 NTMstr = ''; % normal turbulent wind (if empty constant free flow wind)NTMstr
 PolyVec = 0;
 t0 = 240;
@@ -71,7 +70,7 @@ controller = 2; %controller: integer switch: Open-loop: 0,  Wfsim NMPC: 1, KMPC:
 Vinf = 8;
 ControlSetStr = 'sowfa_2turb_alm_turbl'; 
 PolyLiftingFunction = 0; %PolyLiftingFunction(for Koopman model): Higher order lifting function 2,4,6,10,12,14,18,24
-KoopmanStates = 6; %KoopmanStates (for Koopman model):  Number of Koopman states
+KoopmanStates = noStates; %KoopmanStates (for Koopman model):  Number of Koopman states
 vinfStr = '';%'_Vinf'; %_Vinf'; %alternativ '';
 kTimestep =  2;
 sol_update = 0;
@@ -93,8 +92,9 @@ fig = gcf;
 fig.Name = sprintf('TimeSeries_OptYaw%d_KoopAIC%d',OptYaw,KoopAIC);
 
 % control)
+refstairs = -1; %refstairs: Set reference to stairs. If -1
 KoopAIC = 0;
- [sol_array,JR2,JQ2,fileName]  = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
+[sol_array,JR2,JQ2,fileName]  = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
     controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC);
 fig = gcf;
 fig.Name = sprintf('TimeSeries_OptYaw%d_KoopAIC%d',OptYaw,KoopAIC);

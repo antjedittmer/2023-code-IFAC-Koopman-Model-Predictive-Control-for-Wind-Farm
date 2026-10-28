@@ -56,14 +56,14 @@ if controller == 0
 elseif controller == 1 || measured == 1
     %     filename = sprintf('V_inf=%.0f: Q=%0.1d R=%g T.E=%2.2e[W] A.A=%2.2e',...
     %         Wp.site.u_Inf,mpc.Q(1,1),mpc.R(1,1),JQ,JR);
-    titlestring = sprintf('Q=%0.1d, R=%g: TE=%2.2e[kW] AA=%2.2e',...
+    titlestring = sprintf('Q=%0.1d, R=%g: TE=%2.2f kW AA=%2.2e',...
         mpc.Q(1,1),mpc.R(1,1),JQ,JR);
 else
     %     filename = sprintf('V_inf=%.0f States=%d: Q=%0.1d R=%g T.E=%2.2e[W] A.A=%2.2e',...
     %         Wp.site.u_Inf,length(K.A),mpc.Q(1,1),mpc.R(1,1),JQ,JR);
 %     titlestring = sprintf('$no_{States}$=%d, Q=%0.1d, R=%g: TE=%2.2e[W] AA=%2.2e',...
 %         length(K.A),mpc.Q(1,1),mpc.R(1,1),JQ,JR);
-      titlestring = sprintf('Q=%0.1d, R=%g: TE=%2.2e[kW] AA=%2.2e',...
+      titlestring = sprintf('Q=%0.1d, R=%g: TE=%2.2f kW AA=%2.2e',...
         mpc.Q(1,1),mpc.R(1,1),JQ*1000,JR);
 end
 
@@ -105,6 +105,10 @@ subplot(5,1,2)
 stairs(time,uInf(time),'k','linewidth',lw); hold on; 
 stairs(time,u1(time),'color',cl(1,:,:),'linewidth',lw); 
 grid on; hold off; axis tight;
+posY = get(gca,'ylim');
+set(gca,'ylim',[posY(1)*0.97,posY(2)*1.03])
+
+
 ylabel('$V$ [m/s]','interpreter','latex','Fontsize',fsL);
 legend('$V_{\infty}$','$V_1$','interpreter','latex','Fontsize',fsL,'Location','NorthWest','orientation', 'horizontal');
 legend('boxoff')

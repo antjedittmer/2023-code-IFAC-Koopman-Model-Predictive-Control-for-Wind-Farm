@@ -28,7 +28,7 @@ if nargin < 6
     % 0. Run the simulation open loop
     % 1. NMPC Controller by TU Delft
     % 2. KLMPC/ qLMPC controller solved by quadprog solver
-    controller = 0;
+    controller = 2;
 end
 
 if nargin < 7

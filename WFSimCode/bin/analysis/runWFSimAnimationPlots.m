@@ -186,7 +186,7 @@ end
 
 % Comparison WFSim/ Gaussian Wake model
 Psum = sum(P,2);
-[Pmax,idxPmax]= max(Psum);
+[Pmax,idxPmax] = max(Psum);
 Phi = cell2mat(arrayfun(@(x)(x.turbine.Phi),sol_array,'UniformOutput', false));
 phi1 = Phi(1,:); phi2 = Phi(2,:);
 Power = cell2mat(arrayfun(@(x)(x.turbine.power),sol_array,'UniformOutput', false));
@@ -208,7 +208,6 @@ vecIdx = (max(Pk) == Pk);
 nF = figure;
 
 pos = get(nF,'Position');
-set(nF,'Position',[pos(1:3),pos(4)*0.75]);
 
 plot(phi1(kPlotVec),PT1(kPlotVec)/10^6,'bo-', phi1(kPlotVec),PT2(kPlotVec)/10^6,'ro-', ...
     phi1(kPlotVec),Pk/10^6,'ko-',phi1K(vecIdx),max(Pk)/10^6,'go','Linewidth',1); ...
@@ -218,9 +217,6 @@ set(gca,'TickLabelInterpreter','Latex','FontSize',fs)
 xlabel('yaw $\gamma_1$ [deg]','Interpreter','Latex','FontSize',fs);
 ylabel('Power [MW]','Interpreter','Latex','FontSize',fs);
 
-legend('$P1_{WFSim}$','$P2_{WFSim}$','$PT_{WFSim}$','max($PT_{WFSim}$)',...
-    'Interpreter','Latex','Location','EastOutside');
-
 plot(gammaVec,P(:,1)/10^6,'bs--',gammaVec,P(:,2)/10^6,'rs--');
 axis tight;  posAxis = axis; axis([posAxis(1:2),0,posAxis(4)*1.01]);
 
@@ -228,11 +224,26 @@ axis tight;  posAxis = axis; axis([posAxis(1:2),0,posAxis(4)*1.01]);
 %     'Interpreter','Latex');
 plot(gammaVec,Psum/10^6,'ks--',gammaVec(idxPmax),Pmax/10^6,'gs')
 
-legend({'$P1_{WFSim}$','$P2_{WFSim}$','$PT_{WFSim}$','max($PT_{WFSim}$)',...
-    '$P1_{Gauss}$','$P2_{Gauss}$','$PT_{Gauss}$','max($PT_{Gauss}$)'}',...
-    'Interpreter','Latex','Location','EastOutside');
+legCell = {'$P1_{WFSim}$','$P2_{WFSim}$','$PT_{WFSim}$','max($PT_{WFSim}$)',...
+    '$P1_{Gauss}$','$P2_{Gauss}$','$PT_{Gauss}$','max($PT_{Gauss}$)'};
+
+legCell1 = strrep(legCell,'1_{','_{T1,');
+legCell1 = strrep(legCell1,'2_{','_{T2,');
+legCell1 = strrep(legCell1,'T_{','_{WF,');
+%legCell1 = strrep(legCell1,'T1','\text{T1}');
+legend(legCell1,...
+    'Interpreter','Latex','Location','EastOutside','FontSize',fs+1);
 
 %sprintf('max P: $\\gamma$ = %d [deg]', phi1K(vecIdx)),...
+strName = sprintf('PowerVsYaw_Pos1');
+set(gcf,'Name', strName);
+print(gcf,fullfile(dirFig,strName), '-dpng');
+print(gcf,fullfile(dirFig,strName), '-depsc');
+
+legend(legCell,...
+    'Interpreter','Latex','Location','EastOutside','FontSize',fs);
+
+set(nF,'Position',[pos(1:3),pos(4)*0.75]);
 strName = sprintf('PowerVsYaw');
 set(gcf,'Name', strName);
 print(gcf,fullfile(dirFig,strName), '-dpng');
@@ -264,7 +275,7 @@ print(gcf,fullfile(dirFig,strName), '-depsc');
 
 %% Run image sweep with est. Gaussian wake centerline (long, lat, center)
 cnt = 1; % this cnt is used to assemble the long. wind in one plot
-for idx = [1,5] %length(kPlotVec)
+for idx = [1,3,5,7] %length(kPlotVec)
     aK = kPlotVec(idx);
     sol = sol_array(aK);
     nF = figure(nF.Number +1); hfig(idx) = nF;%#ok<SAGROW>
@@ -303,8 +314,7 @@ for idx = [1,5] %length(kPlotVec)
     nF = figure(nF.Number +1); hfig(idx+1) = nF;%#ok<SAGROW>
     pos = get(hfig(idx),'Position');
     set(hfig(idx+1),'Position',pos);
-    
-        
+            
     WFSim_animation(Wp,sol,hfig(idx+1));
     
     filenamepng1 = sprintf('%s_Angle%02d',filenamepng,angleVec(idx));
@@ -315,12 +325,22 @@ for idx = [1,5] %length(kPlotVec)
 end
 
 %% Plot one image for both yaw angle
-nF = figure(nF.Number +1); %#ok<SAGROW>
-WFSim_animation_compare( Wp,solCell,nF,deltaCell,sigmaYCell,xDistVecCell);
-filenamepng1 = 'gamma0_20_AngleCenter';
-set(gcf,'Name', filenamepng1);
-print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
-print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
+
+vecACvec = [1:2;3:4;1,3];
+gammaVecAC = gammaVec([1,3,5,7]);
+
+for idx = 1:3
+    vecAC = vecACvec(idx,:);
+    %gammaVecAC(vecAC)
+
+    nF = figure(nF.Number +1); %#ok<SAGROW>
+    WFSim_animation_compare( Wp,solCell(vecAC),nF,deltaCell(vecAC),sigmaYCell(vecAC),xDistVecCell(vecAC));
+    filenamepng1 = sprintf('gamma%d_%d_AngleCenter',gammaVecAC(vecAC));
+    set(gcf,'Name', filenamepng1);
+    print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
+    print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
+
+end
 
 
 set(0,'DefaultAxesFontSize',dAFS);

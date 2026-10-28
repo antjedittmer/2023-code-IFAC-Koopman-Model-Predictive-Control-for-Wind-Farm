@@ -23,9 +23,9 @@ mpc = H_G_matrix_dU(mpc,sol,xinit);
 bc   = mpc.bc0_ - mpc.Ac0_ * mpc.utemp;
 
 % Turning into QP and solve it%%%%%%%%%
-% myoptions = optimset('Display','iter');
-% [uval ,fval] = quadprog(mpc.H,mpc.g,Ac0_a,bca,[],[],[],[],[],myoptions);
-[uval,fval]= myquadprog(mpc.H,mpc.g,mpc.Ac0_,bc);
+myoptions = optimset('Display','none');
+[uval ,fval] = quadprog(mpc.H,mpc.g,mpc.Ac0_,bc,[],[],[],[],[],myoptions);
+% [uval,fval]= myquadprog(mpc.H,mpc.g,mpc.Ac0_,bc);
 
 %% Koopman estimate ct1,ct2,gamma -> PT
 if isEst == 1
@@ -45,8 +45,8 @@ if isEst == 1
     
     % myoptions = optimset('Display','iter');
     % [uvalK ,fvalK] = quadprog(mpcK.H,mpcK.g,AcK0, bcK,[],[],[],[],[],myoptions);
-    % [uvalK ,fvalK] = quadprog(mpcK.H,mpcK.g,AcK0d, bcKd,[],[],[],[],[],myoptions);
-    [uvalK ,fvalK] = myquadprog(mpcK.H,mpcK.g,AcK0d, bcKd);
+    [uvalK ,fvalK] = quadprog(mpcK.H,mpcK.g,AcK0d, bcKd,[],[],[],[],[],myoptions);
+    % [uvalK ,fvalK] = myquadprog(mpcK.H,mpcK.g,AcK0d, bcKd);
     mpc.xK = uvalK +  mpcK.utemp;
     mpc.uvalK = uvalK;
     mpc.fvalK = fvalK;
