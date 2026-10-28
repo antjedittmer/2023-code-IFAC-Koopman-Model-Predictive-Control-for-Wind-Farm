@@ -287,6 +287,7 @@ plotDataFile = fullfile(dirFig,[filenamepng,sprintf('_Update%d',sol_update),'_pl
 if controller == 2 && exist(plotDataFile,'file') == 2
     disp(['Plot data exist: ',plotDataFile]);
     tmp = load(plotDataFile,'pd');
+    tmp.pd = addKoopFeatEstimate(tmp.pd, fileparts(DataKoopman)); % estimates of the input-only model
     plotWFSimTimeseriesTex(tmp.pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
     sol_array = []; JR = tmp.pd.JR; JQ = tmp.pd.JQ;
     return;
@@ -450,6 +451,7 @@ else
         pd.AICnoV1 = AICnoV1;
         pd.sol_update = sol_update;
     end
+    pd = addKoopFeatEstimate(pd, fileparts(DataKoopman)); % estimates of the input-only model
     save(plotDataFile,'pd');
     plotWFSimTimeseriesTex(pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
 end
