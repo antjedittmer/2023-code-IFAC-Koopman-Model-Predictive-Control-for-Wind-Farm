@@ -12,7 +12,11 @@ function [model, ad, updated] = koopmanAdaptStep(model, ad, Ur, w, UrEst)
 % - model: struct with A, B, L, Lu (identifyAICnoV1)
 % - ad: state of the update (struct with h, nu, nUpd, buffers); [] initializes;
 %   optional maxEig: updates resulting in max|eig(A)| >= maxEig are rejected
-%   (default inf: all updates are accepted, as in the thesis)
+%   (default inf: all updates are accepted, as in the thesis);
+%   optional trigChannels: effective wind speeds used for the trigger
+%   (default [1 2]; 1: only Vr1 of the upstream turbine, which reacts to a
+%   change of the free stream wind first, while the error of Vr2 in the wake
+%   is large also for constant wind)
 % - Ur: measured effective wind speeds [Ur1; Ur2] at sample k
 % - w: inputs at sample k ([CT1; CT2])
 % - UrEst: estimated effective wind speeds at sample k
@@ -27,6 +31,7 @@ if isempty(ad) || ~isfield(ad,'UrBuf')
     if ~isfield(ad,'h'), ad.h = 5; end          % window/batch length
     if ~isfield(ad,'nu'), ad.nu = 0.15; end     % trigger threshold (m/s)
     if ~isfield(ad,'maxEig'), ad.maxEig = inf; end
+    if ~isfield(ad,'trigChannels'), ad.trigChannels = [1 2]; end
     ad.nUpd = 1;
     ad.UrBuf = zeros(2,0); ad.wBuf = zeros(numel(w),0); ad.estBuf = zeros(2,0);
     ad.err = 0;
@@ -40,7 +45,7 @@ updated = false;
 if size(ad.UrBuf,2) < h + 1
     return
 end
-ad.err = max(abs(ad.UrBuf(:,2:end) - ad.estBuf(:,2:end)),[],'all');
+ad.err = max(abs(ad.UrBuf(ad.trigChannels,2:end) - ad.estBuf(ad.trigChannels,2:end)),[],'all');
 if ad.err >= ad.nu
     % Batch of h samples z(k-h..k-1) and successors x(k-h+1..k)
     Z = [liftUr6(ad.UrBuf(:,1:h)); ad.wBuf(:,1:h)];

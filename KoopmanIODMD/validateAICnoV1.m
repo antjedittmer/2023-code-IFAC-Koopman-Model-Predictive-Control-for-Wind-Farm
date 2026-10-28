@@ -10,7 +10,8 @@ function R = validateAICnoV1(filenameVal, t0, ad)
 % - filenameVal: open-loop data with the ramp (default: CT levels, ramp at 5000 s)
 % - t0: first sample (s)
 % - ad: settings of the online update (koopmanAdaptStep, simAdaptiveKoopman),
-%   default h = 5, nu = 0.15 m/s, resetState = true (as in the controller)
+%   default h = 5, nu = 0.15 m/s, resetState = true, trigger on Vr1 only
+%   (trigChannels = 1, as in the controller)
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
@@ -20,7 +21,7 @@ if nargin < 1 || isempty(filenameVal)
     filenameVal = 'sowfa_2turb_ct_levels_val';
 end
 if nargin < 2, t0 = 240; end
-if nargin < 3, ad = struct('h',5,'nu',0.15,'resetState',true); end
+if nargin < 3, ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 modelFile = fullfile(dirOut,'KoopAICnoV1.mat');
 if ~isfile(modelFile)

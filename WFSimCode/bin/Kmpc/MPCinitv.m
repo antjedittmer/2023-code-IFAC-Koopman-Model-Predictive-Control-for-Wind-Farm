@@ -110,8 +110,10 @@ if isfield(mpc,'AICnoV1') && mpc.AICnoV1
     mpc.adModel = tmp.model;
     mpc.adaptive = sol.update;
     % after an update the estimator continues from the measured Ur (resetState),
-    % without it the free-running estimate diverges (validateAICnoV1)
-    mpc.ad = struct('h',5,'nu',0.15,'resetState',true);
+    % without it the free-running estimate diverges (validateAICnoV1); the
+    % trigger uses Vr1 only, so the model is updated on wind speed changes
+    % and not because of the larger wake error of Vr2 at constant wind
+    mpc.ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1);
     KWFModel.sys_red = ss(tmp.model.A,tmp.model.B,eye(2,tmp.model.n),zeros(2,size(tmp.model.B,2)),1);
     KWFModel.Koop = struct('A',tmp.model.L,'G',tmp.model.Lu);
     % The power model (KoopAIC = 0) is not used for the AIC (KoopAIC = 1);
