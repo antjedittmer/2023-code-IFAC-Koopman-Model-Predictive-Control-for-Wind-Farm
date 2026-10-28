@@ -1,4 +1,4 @@
-function R = validateAICnoV1(filenameVal, t0, ad)
+function R = validateAICnoV1(filenameVal, t0, ad, marks)
 % validateAICnoV1 open-loop validation of the Koopman effective wind speed
 % model without V1 (identifyAICnoV1, inputs CT1, CT2 only, no yaw) on the
 % data set with the wind speed ramp from 7 to 9 m/s: non-adaptive and
@@ -12,6 +12,8 @@ function R = validateAICnoV1(filenameVal, t0, ad)
 % - ad: settings of the online update (koopmanAdaptStep, simAdaptiveKoopman),
 %   default h = 5, nu = 0.15 m/s, resetState = true, trigger on Vr1 only
 %   (trigChannels = 1, as in the controller)
+% - marks: update times marked in color in the adaptive plot (output sel
+%   of plotAICnoV1Sigma: the models shown with their singular values)
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
@@ -20,8 +22,9 @@ addpath(fullfile(koopmanDir,'2.DYNAMIC_MODE_DECOMPOSITION'), genpath(fullfile(ko
 if nargin < 1 || isempty(filenameVal)
     filenameVal = 'sowfa_2turb_ct_levels_val';
 end
-if nargin < 2, t0 = 240; end
-if nargin < 3, ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
+if nargin < 2 || isempty(t0), t0 = 240; end
+if nargin < 3 || isempty(ad), ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
+if nargin < 4, marks = []; end
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 modelFile = fullfile(dirOut,'KoopAICnoV1.mat');
 if ~isfile(modelFile)
@@ -53,11 +56,13 @@ for adaptive = [false true]
         'VariableNames', {'Adaptive','VAF_Ur1','VAF_Ur2','NoUpdates'})]; %#ok<AGROW>
     if adaptive
         strVal = 'Val. adaptive';
+        marksPlot = marks;
     else
         strVal = 'Val. non-adaptive';
+        marksPlot = [];
     end
     fig = plotEDMDinputsEffWindUpdate(UrEst, [W; V1], Ur, max(vafUr,0), dirOut, 1, model.n, ...
-        strVal, 1 + upd, 1, Vinf, k, 'tex'); % time axis (s), TeX
+        strVal, 1 + upd, 1, Vinf, k, 'tex', marksPlot); % time axis (s), TeX
     set(fig,'Name',strVal);
 end
 disp(R)

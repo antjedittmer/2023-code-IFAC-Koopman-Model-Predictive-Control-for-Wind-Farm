@@ -1,10 +1,12 @@
-function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,Pvec,displayOff,Vinf,tVec,interp)
+function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,Pvec,displayOff,Vinf,tVec,interp,marks)
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
 % Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
 % in (), no legends: the first title names the measured signals WT1, WT2,
 % V_inf and the estimated signals V_r1,est, V_r2,est in their colors)
+% Optional marks: table with Time_s and Color (plotAICnoV1Sigma), colored
+% lines at these times in the update subplot (tVec required)
 
 if nargin < 6
     Vin = 0;
@@ -31,6 +33,10 @@ end
 
 if nargin < 13
     interp = 'latex';
+end
+
+if nargin < 14
+    marks = [];
 end
 
 if nx > 0
@@ -125,6 +131,12 @@ if isempty(tVec)
     plot(min((Pvec-1),1),'k','LineWidth',lw); %1
 else
     plot(xk,min((Pvec(kplot)-1),1),'k','LineWidth',lw);
+end
+if ~isempty(marks) % updates after which the model is shown elsewhere
+    hold on;
+    for idx = find(marks.Time_s(:)' >= xk(1) & marks.Time_s(:)' <= xk(end))
+        plot(marks.Time_s(idx)*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2);
+    end
 end
 
 grid on; axis tight

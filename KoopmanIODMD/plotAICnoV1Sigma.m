@@ -15,7 +15,8 @@ function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad)
 %
 % Outputs
 % - fig: figure handle
-% - sel: table of the shown models (time, number of updates so far)
+% - sel: table of the shown models (time, number of updates so far, line
+%   color), input marks of validateAICnoV1
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
@@ -47,28 +48,33 @@ W = [S.Ct1(k); S.Ct2(k)];
 iUpd = find(upd);
 saveAt = unique([1, iUpd(ceil(numel(iUpd)*[0.25 0.5 1]))]);
 [~, ~, ~, ~, models] = simAdaptiveKoopman(model7, Ur, W, true, ad, saveAt);
-sel = table(k([models.k])', arrayfun(@(m) sum(upd(1:m.k)), models)', ...
-    'VariableNames', {'Time_s','NoUpdates'});
+% Colors: initial model gray, updated models in colors not used for WT1,
+% WT2 (lines 1, 2), the same colors mark the update times in the
+% validation plot (validateAICnoV1)
+cl = lines(5);
+cl = [0.5 0.5 0.5; cl(3:2+numel(models)-1,:)];
+sel = table(k([models.k])', arrayfun(@(m) sum(upd(1:m.k)), models)', cl, ...
+    'VariableNames', {'Time_s','NoUpdates','Color'});
 
 % Singular values
 omega = logspace(-5, log10(pi), 600);
 sv = @(A,B) sigma(ss(A, B, eye(2,size(A,1)), zeros(2,size(B,2)), 1), omega);
 
 fig = figure;
-cl = lines(numel(models));
 lw = 1.2;
-names = cell(1,numel(models));
+names = cell(1,numel(models)-1);
 for idx = 1:numel(models)
     loglog(omega, sv(models(idx).A, models(idx).B)', 'Color', cl(idx,:), 'LineWidth', lw); hold on;
-    names{idx} = sprintf('%d s', k(models(idx).k));
+    if idx > 1, names{idx-1} = sprintf('%d s', k(models(idx).k)); end
 end
 loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', lw);
 grid on; axis tight;
 xlabel('Frequency (rad/s)');
 ylabel('Singular values (m/s)');
 set(gca, 'FontSize', 11, 'TickLabelInterpreter', 'tex');
-title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
-    ['Updated at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
+title({['Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}: ', ...
+    colorKey({'initial (offline ID 7 m/s)','offline ID 9 m/s'}, [cl(1,:); 0 0 0])], ...
+    ['Updated until t = ', colorKey(names, cl(2:end,:))]}, ...
     'FontWeight', 'normal', 'Interpreter', 'tex');
 printFixedWidth(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)
