@@ -157,8 +157,12 @@ end
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
-print(gcf,fullfile(dirFig,['Val',strVal1]), '-dpng');
-print(gcf,fullfile(dirFig,['Val',strVal1]), '-depsc');
+if strcmpi(interp,'tex') % thesis: fixed width
+    printFixedWidth(fig1, fullfile(dirFig,['Val',strVal1]));
+else
+    print(gcf,fullfile(dirFig,['Val',strVal1]), '-dpng');
+    print(gcf,fullfile(dirFig,['Val',strVal1]), '-depsc');
+end
 end
 
 function str = latex2tex(str)
@@ -179,4 +183,19 @@ for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
 str = strjoin(parts, '   ');
+end
+
+function printFixedWidth(h, fName)
+% printFixedWidth saves figure h as vector .eps and 300 dpi .png with the
+% width of the standard MATLAB figure (560 px = 14.82 cm), the height from
+% the aspect ratio of the window: the output is laid out for this paper
+% size, not for the window, and the eps bounding box is the full paper
+% size (-loose), so that all thesis figures have the same width and font
+% size in LaTeX (e.g. two side by side with width=0.495	extwidth)
+pos = get(h, 'Position');
+sizeCm = 14.82*[1, pos(4)/pos(3)];
+set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
+    'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
+print(h, fName, '-depsc', '-painters', '-loose');
+print(h, fName, '-dpng', '-r300');
 end
