@@ -47,7 +47,11 @@ end
 
 fig1 = figure;
 posDefault = get(gcf, 'position');
-set(gcf, 'position', [posDefault(1:2),posDefault(3),posDefault(4)*1.2]);
+hFac = 1.2;
+if strcmpi(interp,'tex') % thesis: height as the closed-loop plots (plotWFSimTimeseriesTex, 5 subplots)
+    hFac = 1.6;
+end
+set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*hFac]);
 cl = colormap('lines');
 lw = 1;
 fs = 10;
