@@ -14,7 +14,8 @@ function fig = plotWFSimTimeseriesTex(pd, dirFig, fileBase)
 % - pd: struct with time, Power, CT_prime, Phi, V, V_est, u1, uInf, Pref,
 %   Pgreedy, JQ (MW), JR and the settings controller, OptYaw, KoopAIC, KoopFeat;
 %   optional: modeStr (title), update (update flags of the adaptive AIC,
-%   shown in an additional subplot), showGreedy, showYaw (default true)
+%   shown in an additional subplot, also if all zero: non-adaptive run),
+%   showGreedy, showYaw (default true)
 % - dirFig, fileBase (optional): save as <fileBase>_Tex (.fig, .png, .eps)
 
 time = pd.time;
@@ -32,7 +33,7 @@ else
 end
 if isfield(pd,'modeStr'), modeStr = pd.modeStr; end
 titleStr = sprintf('%s: TE = %.1f kW, AA = %.1e', modeStr, pd.JQ*1e3, pd.JR);
-showUpdate = isfield(pd,'update') && any(pd.update);
+showUpdate = isfield(pd,'update'); % adaptive AIC runs, also without update (all zero)
 showGreedy = ~isfield(pd,'showGreedy') || pd.showGreedy;
 showYaw = ~isfield(pd,'showYaw') || pd.showYaw;
 nSub = 4 + showYaw + showUpdate;

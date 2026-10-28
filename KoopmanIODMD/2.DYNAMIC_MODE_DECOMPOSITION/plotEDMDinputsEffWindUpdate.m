@@ -138,7 +138,14 @@ if ~isempty(marks) % updates after which the model is shown elsewhere
     for idx = find(marks.Time_s(:)' >= xk(1) & marks.Time_s(:)' <= xk(end))
         % first sample (initial model): shifted to be visible next to the axis
         tMark = max(marks.Time_s(idx), xk(1) + 0.004*(xk(end)-xk(1)));
-        plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2);
+        plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2, 'LineStyle', '-');
+        % time stamp at the bottom, right of the line (left if TextSide = -1)
+        side = 1;
+        if ismember('TextSide', marks.Properties.VariableNames), side = marks.TextSide(idx); end
+        hAlign = {'right','left'};
+        text(tMark + side*0.008*(xk(end)-xk(1)), 0.05, sprintf('%d s', marks.Time_s(idx)), ...
+            'Color', marks.Color(idx,:), 'FontSize', fs, 'VerticalAlignment', 'bottom', ...
+            'HorizontalAlignment', hAlign{(side > 0) + 1});
     end
 end
 
