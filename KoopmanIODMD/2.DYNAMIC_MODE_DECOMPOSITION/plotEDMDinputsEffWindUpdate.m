@@ -3,7 +3,8 @@ function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_va
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
 % Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
-% in (), no legends: the first title names WT1, WT2 and V_inf in their colors)
+% in (), no legends: the first title names the measured signals WT1, WT2,
+% V_inf and the estimated signals V_r1,est, V_r2,est in their colors)
 
 if nargin < 6
     Vin = 0;
@@ -148,8 +149,9 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
     axs = findall(fig1,'Type','axes');
     set(axs,'TickLabelInterpreter','tex');
     axTop = axs(end); % first subplot
-    axTop.Title.String = {axTop.Title.String, colorKey({'WT1','WT2','V_\infty','V_{r1,est}','V_{r2,est}'}, ...
-        [cl(1,:); cl(2,:); 0 0 0; 0 0 0.6; 0.6 0 0])};
+    axTop.Title.String = {axTop.Title.String, ...
+        ['Measured sig.: ', colorKey({'WT1','WT2','V_\infty'}, [cl(1,:); cl(2,:); 0 0 0]), ...
+        '; Estimated sig.: ', colorKey({'V_{r1,est}','V_{r2,est}'}, [0 0 0.6; 0.6 0 0])]};
     axTop.Title.FontWeight = 'normal';
     axs(1).YLabel.String = 'Update (-)';
 end
@@ -181,7 +183,7 @@ parts = cell(size(names));
 for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
-str = strjoin(parts, '   ');
+str = strjoin(parts, ', ');
 end
 
 function printFixedWidth(h, fName)

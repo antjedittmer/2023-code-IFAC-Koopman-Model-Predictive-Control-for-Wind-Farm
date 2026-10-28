@@ -3,7 +3,8 @@ function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITj
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
 % Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
-% in (), no legends: the first title names WT1, WT2 and Est. in their colors)
+% in (), no legends: the first title names the measured (WT1, WT2) and the
+% estimated signals in their colors)
 
 if nargin < 6
     Vin = 0;
@@ -151,7 +152,14 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     axs = findall(fig1,'Type','axes');
     set(axs,'TickLabelInterpreter','tex');
     axTop = axs(end); % first subplot
-    axTop.Title.String = {axTop.Title.String, colorKey({'WT1','WT2','Est.'}, [cl(1,:); cl(2,:); 0 0 0])};
+    if noSubOut == 1 % estimated output(s), black dashed
+        estNames = {[strOut,'_{T,est}']};
+    else
+        estNames = {'V_{r1,est}','V_{r2,est}'};
+    end
+    axTop.Title.String = {axTop.Title.String, ...
+        ['Measured sig.: ', colorKey({'WT1','WT2'}, [cl(1,:); cl(2,:)]), ...
+        '; Estimated sig.: ', colorKey(estNames, zeros(numel(estNames),3))]};
     axTop.Title.FontWeight = 'normal';
 end
 
@@ -172,6 +180,7 @@ str = strrep(str,'$','');
 str = strrep(str,'\inf}','\infty}');
 str = regexprep(str,'\[([^\]]*)\]','($1)');
 str = regexprep(str,'\<Ur(\d)','V_{r$1}'); % VAF Ur1 -> V_{r1}
+str = regexprep(str,'VAF PT:','VAF P_T:'); % farm power as in the y label
 str = regexprep(str,', r(\d):',', V_{r$1}:'); % VAF ..., r2 -> V_{r2}
 str = regexprep(str,'\<U(_?\{?r)','V$1'); % effective wind speed V_r as in the thesis
 end
@@ -182,7 +191,7 @@ parts = cell(size(names));
 for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
-str = strjoin(parts, '   ');
+str = strjoin(parts, ', ');
 end
 
 function printFixedWidth(h, fName)
