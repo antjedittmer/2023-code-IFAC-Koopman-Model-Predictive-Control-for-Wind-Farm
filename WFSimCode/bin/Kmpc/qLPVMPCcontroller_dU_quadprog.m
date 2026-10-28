@@ -24,6 +24,23 @@ end
 % initialize controller
 mpc = MPCinit_ctrl(sol,Wp,mpc);
 
+% Adaptive AIC without V1 (AICnoV1 in WFSim_demo): Koopman effective wind
+% speed model with the inputs CT1, CT2, updated online (sol_update = 1) if
+% the estimation error of the last samples exceeds the threshold
+% (koopmanAdaptStep); the model is kept in mpc as K is not returned
+adUpdated = false;
+if isfield(mpc,'adModel')
+    if mpc.adaptive && sol.k > 1 && isfield(sol,'xprev')
+        [mpc.adModel, mpc.ad, adUpdated] = koopmanAdaptStep(mpc.adModel, mpc.ad, ...
+            sol.turbine.Ur, sol.turbine.CT_prime, sol.xprev(1:2));
+        if adUpdated && mpc.ad.resetState % estimator continues from the measured Ur
+            mpc.xprev = [sol.turbine.Ur; sol.turbine.Ur.^2; sol.turbine.Ur.^3];
+        end
+    end
+    K.A = mpc.adModel.A;
+    K.B = mpc.adModel.B;
+end
+
 % check if the Koopman model should be updated
 enoughData = ~any(isnan(vecLastUr(:))); % alternatively, check for sol.k > length(vecLastUr)
 
@@ -251,6 +268,17 @@ else
 end
 CT_prime      = temp(1:2,1);              % first action horizon
 
+% Adaptive AIC: persistent excitation during updates, weighted sum of the
+% optimal input and white noise in the CT_prime range, new every 5 samples
+if isfield(mpc,'adModel') && mpc.adaptive
+    if ~isfield(mpc.ad,'noise') || mod(sol.k,5) == 0
+        mpc.ad.noise = mpc.Ulim_lower(1:2) + (mpc.Ulim_upper(1:2) - mpc.Ulim_lower(1:2)).*rand(2,1);
+    end
+    if isfield(mpc.ad,'nUpd') && mpc.ad.nUpd > 1
+        CT_prime = 0.99*CT_prime + 0.01*mpc.ad.noise;
+    end
+end
+
 phiRLim = 1;
 aDiff = tempPhi(1) - sol.turbine.Phi(1);
 phi = [sol.turbine.Phi(1) + min(max(aDiff,-phiRLim),phiRLim), tempPhi(2:end)];
@@ -274,6 +302,9 @@ vecCT_prime(:,end) = CT_prime;
 %Save ctprime
 mpc.error_norm = error_norm;
 mpc.P1 = P1;
+if isfield(mpc,'adModel') % update flag of the adaptive AIC (plot)
+    mpc.P1 = 1 + double(adUpdated);
+end
 
 % if mod((sol.k-1)/100,1) == 0 %Figure for debugging
 % codedir = mfilename('fullpath');

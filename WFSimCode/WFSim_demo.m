@@ -1,5 +1,5 @@
 function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat)
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1)
 % WFSim_demo is the WIND FARM SIMULATOR (WFSIM) by S. Boersma and B. Doekemeijer
 % from https://github.com/TUDelft-DataDrivenControl/WFSim
 %
@@ -16,6 +16,9 @@ function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanSta
 % - KoopFeat (KMPC with KoopAIC = 0): 1 uses the input-only Koopman power
 %   model with input features (KoopFeatModel.mat, exportPowerFeatureModel)
 %   instead of the model with the measured wind speed V1. Default: 0
+% - AICnoV1 (KMPC with KoopAIC = 1): 1 uses the effective wind speed model
+%   with the inputs CT1, CT2 only (identifyAICnoV1, no V1), updated online
+%   with sol_update = 1 (adaptive AIC). Default: 0
 %
 % Closed loop with KMPC (controller = 2, no library update): the plot data of
 % each run are saved as <figure name>_plotData.mat in the output folder. If
@@ -96,6 +99,10 @@ end
 
 if nargin < 16
     KoopFeat = 0;
+end
+
+if nargin < 17
+    AICnoV1 = 0;
 end
 
 
@@ -221,7 +228,7 @@ sol.VinfInput = sol_VinfInput;
 sol.update = sol_update;
 
 if length(Vinf) > 1 && length(Wp.site.u_Inf) == 1 %Vinf is set by the user
-    VinfStr = strrep(sprintf('Vinf%2.1fTo%2.1f',Vinf(1),Vinf(2)),'.','dot');
+    VinfStr = strrep(sprintf('Vinf%2.1fTo%2.1f',Vinf(1),Vinf(end)),'.','dot'); % ramp [V0 V1] or time series
 elseif length(Wp.site.u_Inf) == 1
     VinfStr = strrep(sprintf('Vinf%2.1f',Wp.site.u_Inf),'.','dot'); % information for plot
 else
@@ -268,13 +275,16 @@ if KoopFeat == 1
 elseif KoopFeat > 1
     figName = sprintf('%s_KoopFeat%d',figName,KoopFeat);
 end
+if AICnoV1
+    figName = [figName,'_AICnoV1'];
+end
 filenamepng = matlab.lang.makeValidName(figName);
 fullFigName = fullfile(dirFig,[filenamepng,'.fig']);
 
 figFileExists = exist(fullFigName,'file') == 2;
 
 plotDataFile = fullfile(dirFig,[filenamepng,sprintf('_Update%d',sol_update),'_plotData.mat']);
-if controller == 2 && ~sol_update && exist(plotDataFile,'file') == 2
+if controller == 2 && exist(plotDataFile,'file') == 2
     disp(['Plot data exist: ',plotDataFile]);
     tmp = load(plotDataFile,'pd');
     plotWFSimTimeseriesTex(tmp.pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
@@ -307,6 +317,7 @@ mpc.OptYaw = OptYaw;
 mpc.KoopAIC = KoopAIC;
 mpc.Rvec = Rvec;
 mpc.KoopFeat = KoopFeat;
+mpc.AICnoV1 = AICnoV1;
 
 mpc.RU = RU;
 
@@ -364,7 +375,9 @@ while sol.k < NN
         Wp.site.u_Inf = Vinf(1) + kVinf*0.01; %Vinf(2); %
     elseif length(Vinf) > 2
         Wp.site.u_Inf = Vinf(max(1,sol.k)); %Vinf(1) + kVinf*0.01;
-        Wp.site.v_Inf = Vinfy(max(1,sol.k));
+        if exist('Vinfy','var') % time series without lateral component: v_Inf unchanged
+            Wp.site.v_Inf = Vinfy(max(1,sol.k));
+        end
     end
     
     [sol,sys]      = WFSim_timestepping(sol,sys,Wp,turbInput,modelOptions); % forward timestep: x_k+1 = f(x_k)
@@ -409,14 +422,11 @@ if controller == 0
     [JR,JQ] = plotWFSimTimeseries(Wp,sol_array,controller,Power,CT_prime,Phi,V,JR,time,measured,figName,dirFig);
 elseif controller == 1
     [JR,JQ] = plotWFSimTimeseries(Wp,sol_array,controller,Power,CT_prime,Phi,V,JR,time,measured,figName,dirFig,mpc);
-elseif sol.update
-    P1 = cell2mat(arrayfun(@(x)(x.P1),sol_array,'UniformOutput', false));
-    P1(1) = 1; %not set in initialisation;
-    PUpdate = min(P1-1,1);
-    % time = 1500:3500;
-    [JR,JQ] = plotWFSimTimeseries(Wp,sol_array,controller,Power,CT_prime,Phi,V,JR,time1,measured,figName,dirFig,mpc); %PUpdate,refstairs);
 else
     time1 = time(time >= 500 & time <= 1200);
+    if refstairs == 20 % adaptive AIC test case: whole simulation
+        time1 = time(time >= 1);
+    end
     [JR,JQ] = plotWFSimTimeseriesLatex2(Wp,sol_array,controller,Power,CT_prime,Phi,V,JR,time1,measured,figName,dirFig,mpc);
 
     % Save the plot data of this run (controller and model in the file name)
@@ -430,6 +440,16 @@ else
         'Pref',mpc.Pref(1:kk),'Pgreedy',mpc.Pgreedy,'JQ',JQ,'JR',JR,'R',R, ...
         'controller',controller,'measured',measured,'OptYaw',OptYaw,'KoopAIC',KoopAIC, ...
         'KoopFeat',KoopFeat,'KoopmanStates',KoopmanStates,'ControlSetStr',ControlSetStr);
+    if AICnoV1 % adaptive AIC: update flags, title, no greedy power (8 m/s)
+        P1 = cell2mat(arrayfun(@(x)(x.P1),sol_array,'UniformOutput',false));
+        pd.update = min(max(P1-1,0),1);
+        pd.modeStr = 'Non-adaptive AIC';
+        if sol_update, pd.modeStr = 'Adaptive AIC'; end
+        pd.showGreedy = false;
+        pd.showYaw = false; % thrust control only
+        pd.AICnoV1 = AICnoV1;
+        pd.sol_update = sol_update;
+    end
     save(plotDataFile,'pd');
     plotWFSimTimeseriesTex(pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
 end

@@ -2,7 +2,8 @@ function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITj
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
-% Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units in ())
+% Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
+% in (), no legends: the first title names WT1, WT2 and Est. in their colors)
 
 if nargin < 6
     Vin = 0;
@@ -146,13 +147,12 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     for hTxt = findall(fig1,'Type','text')'
         set(hTxt,'String',latex2tex(get(hTxt,'String')),'Interpreter','tex');
     end
-    for hLeg = findall(fig1,'Type','legend')'
-        set(hLeg,'String',cellfun(@latex2tex,hLeg.String,'UniformOutput',false),'Interpreter','tex');
-    end
-    set(findall(fig1,'Type','axes'),'TickLabelInterpreter','tex');
-    for hAx = findall(fig1,'Type','axes')'
-        hAx.Title.FontWeight = 'normal';
-    end
+    delete(findall(fig1,'Type','legend'));
+    axs = findall(fig1,'Type','axes');
+    set(axs,'TickLabelInterpreter','tex');
+    axTop = axs(end); % first subplot
+    axTop.Title.String = {axTop.Title.String, colorKey({'WT1','WT2','Est.'}, [cl(1,:); cl(2,:); 0 0 0])};
+    axTop.Title.FontWeight = 'normal';
 end
 
 %sys_red{1,1}.Xint = xo;
@@ -162,8 +162,21 @@ print(gcf,fullfile(dirFig,['Val',strVal1]), '-depsc');
 end
 
 function str = latex2tex(str)
-% latex2tex LaTeX label to TeX: no $, \inf -> \infty, units [..] -> (..)
+% latex2tex LaTeX label to TeX: no $, \inf -> \infty, units [..] -> (..),
+% U_r -> V_r
 str = strrep(str,'$','');
 str = strrep(str,'\inf}','\infty}');
 str = regexprep(str,'\[([^\]]*)\]','($1)');
+str = regexprep(str,'\<Ur(\d)','V_{r$1}'); % VAF Ur1 -> V_{r1}
+str = regexprep(str,', r(\d):',', V_{r$1}:'); % VAF ..., r2 -> V_{r2}
+str = regexprep(str,'\<U(_?\{?r)','V$1'); % effective wind speed V_r as in the thesis
+end
+
+function str = colorKey(names, colors)
+% colorKey signal names in their line colors (TeX), used instead of a legend
+parts = cell(size(names));
+for idx = 1:numel(names)
+    parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
+end
+str = strjoin(parts, '   ');
 end

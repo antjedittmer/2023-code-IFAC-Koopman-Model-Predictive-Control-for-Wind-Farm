@@ -1,4 +1,4 @@
-function turbInputSet = controlSetHelper_ctYawLevels(seed, tEnd)
+function turbInputSet = controlSetHelper_ctYawLevels(seed, tEnd, phiRange)
 % controlSetHelper_ctYawLevels open loop excitation for the Koopman sys id:
 % the thrust coefficients CT_prime of both turbines and the yaw angle of
 % turbine 1 jump independently between random levels, held for 150 s to
@@ -8,11 +8,15 @@ function turbInputSet = controlSetHelper_ctYawLevels(seed, tEnd)
 % Inputs
 % - seed: random seed (identification and validation sets differ)
 % - tEnd: length of the input sequence (s)
+% - phiRange: range of the yaw angle of turbine 1 (deg), default [0 30];
+%   [0 0] for thrust control only (AIC)
 
 rng(seed);
 holdRange = [150 300]; % (s)
 ctRange = [0.5 2];
-phiRange = [0 30];      % (deg)
+if nargin < 3
+    phiRange = [0 30];  % (deg)
+end
 ctRLim = 0.05;          % (1/s)
 phiRLim = 1;            % (deg/s)
 nNoise = 10;            % noise held for nNoise s
@@ -26,7 +30,7 @@ phi1 = randomLevels(t, holdRange, phiRange);
 CT_prime = CT_prime + ctNoise*heldNoise(2, numel(t), nNoise);
 phi1 = phi1 + phiNoise*heldNoise(1, numel(t), nNoise);
 CT_prime = min(max(CT_prime, 0.2), 2);
-phi1 = min(max(phi1, 0), 30);
+phi1 = min(max(phi1, phiRange(1)), phiRange(2));
 
 CT_prime = rateLimit(CT_prime, ctRLim);
 phi1 = rateLimit(phi1, phiRLim);
