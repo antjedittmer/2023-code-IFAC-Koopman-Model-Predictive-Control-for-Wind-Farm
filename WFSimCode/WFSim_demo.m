@@ -1,5 +1,5 @@
 function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1)
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad)
 % WFSim_demo is the WIND FARM SIMULATOR (WFSIM) by S. Boersma and B. Doekemeijer
 % from https://github.com/TUDelft-DataDrivenControl/WFSim
 %
@@ -19,6 +19,10 @@ function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanSta
 % - AICnoV1 (KMPC with KoopAIC = 1): 1 uses the effective wind speed model
 %   with the inputs CT1, CT2 only (identifyAICnoV1, no V1), updated online
 %   with sol_update = 1 (adaptive AIC). Default: 0
+% - ad (AICnoV1): settings of the online update (koopmanAdaptStep), e.g.
+%   struct('nu',0.1,'h',10); fields not given as in MPCinitv (h = 5,
+%   nu = 0.15 m/s, resetState, trigger on Vr1). Default []: MPCinitv.
+%   Results are saved with the suffix _nu<100*nu>_h<h>
 %
 % Closed loop with KMPC (controller = 2, no library update): the plot data of
 % each run are saved as <figure name>_plotData.mat in the output folder. If
@@ -103,6 +107,10 @@ end
 
 if nargin < 17
     AICnoV1 = 0;
+end
+
+if nargin < 18
+    ad = [];
 end
 
 
@@ -277,6 +285,10 @@ elseif KoopFeat > 1
 end
 if AICnoV1
     figName = [figName,'_AICnoV1'];
+    if ~isempty(ad) % settings of the online update other than in MPCinitv
+        adFull = adaptSettings(ad);
+        figName = sprintf('%s_nu%03d_h%d', figName, round(100*adFull.nu), adFull.h);
+    end
 end
 filenamepng = matlab.lang.makeValidName(figName);
 fullFigName = fullfile(dirFig,[filenamepng,'.fig']);
@@ -319,6 +331,7 @@ mpc.KoopAIC = KoopAIC;
 mpc.Rvec = Rvec;
 mpc.KoopFeat = KoopFeat;
 mpc.AICnoV1 = AICnoV1;
+if ~isempty(ad), mpc.ad = adaptSettings(ad); end
 
 mpc.RU = RU;
 
@@ -450,8 +463,12 @@ else
         pd.showYaw = false; % thrust control only
         pd.AICnoV1 = AICnoV1;
         pd.sol_update = sol_update;
+        if ~isempty(ad) % settings of the online update in the title
+            pd.ad = mpc.ad;
+            pd.modeStr = sprintf('AIC (\\nu = %.2f m/s, h = %d)', mpc.ad.nu, mpc.ad.h); % short: fits the width
+        end
     end
     pd = addKoopFeatEstimate(pd, fileparts(DataKoopman)); % estimates of the input-only model
     save(plotDataFile,'pd');
     plotWFSimTimeseriesTex(pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
-end
+end
