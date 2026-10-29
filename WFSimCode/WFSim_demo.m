@@ -1,5 +1,5 @@
 function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad)
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad,UrFromPower)
 % WFSim_demo is the WIND FARM SIMULATOR (WFSIM) by S. Boersma and B. Doekemeijer
 % from https://github.com/TUDelft-DataDrivenControl/WFSim
 %
@@ -23,6 +23,10 @@ function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanSta
 %   struct('nu',0.1,'h',10); fields not given as in MPCinitv (h = 5,
 %   nu = 0.15 m/s, resetState, trigger on Vr1). Default []: MPCinitv.
 %   Results are saved with the suffix _nu<100*nu>_h<h>
+% - UrFromPower (KMPC, controller = 2): 1 passes the rotor effective wind
+%   speeds estimated from the power, CT' and yaw angle (urFromPower) to the
+%   controller, 0 the measured ones (sol.turbine.Ur). Default: 1. Results
+%   with the estimate are saved with the suffix _UrP
 %
 % Closed loop with KMPC (controller = 2, no library update): the plot data of
 % each run are saved as <figure name>_plotData.mat in the output folder. If
@@ -112,6 +116,11 @@ end
 if nargin < 18
     ad = [];
 end
+
+if nargin < 19 || isempty(UrFromPower)
+    UrFromPower = 1;
+end
+UrFromPower = UrFromPower && controller == 2; % only used by the KMPC
 
 
 ControlSetStr2 = 'sowfa_2turb_yaw_alm_turbl_AllComb1';
@@ -290,6 +299,9 @@ if AICnoV1
         figName = sprintf('%s_nu%03d_h%d', figName, round(100*adFull.nu), adFull.h);
     end
 end
+if UrFromPower
+    figName = [figName,'_UrP'];
+end
 filenamepng = matlab.lang.makeValidName(figName);
 fullFigName = fullfile(dirFig,[filenamepng,'.fig']);
 
@@ -376,7 +388,11 @@ while sol.k < NN
             case 2
                 % MATLAB quadprog (QP cost fun: min f(x) = 1/2*x'Hx+f'x s.t. Ax <= b
                 % measured = 0: Koopman model for wind
-                [turbInput.CT_prime(:,1),turbInput.phi(:,1),mpc] = qLPVMPCcontroller_dU_quadprog(sol,Wp,mpc,K,measured);
+                solC = sol;
+                if UrFromPower % Ur estimated from the power instead of measured
+                    solC.turbine.Ur = urFromPower(sol,Wp);
+                end
+                [turbInput.CT_prime(:,1),turbInput.phi(:,1),mpc] = qLPVMPCcontroller_dU_quadprog(solC,Wp,mpc,K,measured);
             otherwise
                 % not yet implemented -> this should stop
                 error('Controller switch has to be set to 0,1 or 2')
@@ -453,7 +469,8 @@ else
         'V_est',X_est(1:2,:),'u1',squeeze(utemp(nTxP,nTyP,:))','uInf',squeeze(utemp(1,nTyP,:))', ...
         'Pref',mpc.Pref(1:kk),'Pgreedy',mpc.Pgreedy,'JQ',JQ,'JR',JR,'R',R, ...
         'controller',controller,'measured',measured,'OptYaw',OptYaw,'KoopAIC',KoopAIC, ...
-        'KoopFeat',KoopFeat,'KoopmanStates',KoopmanStates,'ControlSetStr',ControlSetStr);
+        'KoopFeat',KoopFeat,'KoopmanStates',KoopmanStates,'ControlSetStr',ControlSetStr, ...
+        'UrFromPower',UrFromPower);
     if AICnoV1 % adaptive AIC: update flags, title, no greedy power (8 m/s)
         P1 = cell2mat(arrayfun(@(x)(x.P1),sol_array,'UniformOutput',false));
         pd.update = min(max(P1-1,0),1);

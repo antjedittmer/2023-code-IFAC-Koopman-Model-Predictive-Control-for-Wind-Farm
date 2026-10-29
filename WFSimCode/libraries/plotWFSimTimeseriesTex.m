@@ -27,12 +27,12 @@ cl = lines(7);
 if pd.OptYaw == 0
     modeStr = 'Baseline AIC';
 elseif pd.OptYaw == 2 || pd.KoopAIC
-    modeStr = 'AIC with static yaw';
+    modeStr = 'AIC, opt. yaw';
 else
     modeStr = 'WRC-AIC';
 end
 if isfield(pd,'modeStr'), modeStr = pd.modeStr; end
-titleStr = sprintf('%s: TE = %.1f kW, AA = %.1e', modeStr, pd.JQ*1e3, pd.JR);
+titleStr = sprintf('%s: TE = %.1f kW, 1000\\cdotAA = %.1f', modeStr, pd.JQ*1e3, 1e3*pd.JR);
 showUpdate = isfield(pd,'update'); % adaptive AIC runs, also without update (all zero)
 showGreedy = ~isfield(pd,'showGreedy') || pd.showGreedy;
 showYaw = ~isfield(pd,'showYaw') || pd.showYaw;
@@ -61,19 +61,21 @@ set(fig, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4
 setFigureSize(fig, [1 hFac]); % export size independent of the screen
 
 ax = gobjects(nSub,1);
-ax(1) = subplot(nSub,1,1);
+% tiled layout: less white space between and around the axes than subplot
+tl = tiledlayout(fig, nSub, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+ax(1) = nexttile(tl,1);
 stairs(time,pd.Pref(time)/1e6,'k','linewidth',lw); hold on; grid on;
-stairs(time,sum(pd.Power(:,time))/1e6,'-.','linewidth',lw+0.2,'color',cl(4,:));
+stairs(time,sum(pd.Power(:,time))/1e6,'-.','linewidth',lw,'color',cl(4,:)); % P_WF dash-dotted, 1
 farmNames = {'P_{ref}','P_{WF}'};
 farmColors = [0 0 0; cl(4,:)];
-if showEstP % estimated farm power (dark purple)
-    clPest = [0.30 0.05 0.35];
-    stairs(time,pd.P_est(time)/1e6,':','linewidth',lw+0.4,'color',clPest);
+if showEstP % estimated farm power (pink, dotted, 1.5 as the estimated wind speeds)
+    clPest = [0.93 0.35 0.65];
+    stairs(time,pd.P_est(time)/1e6,':','linewidth',lw+0.5,'color',clPest);
     farmNames{end+1} = 'P_{WF,est}';
     farmColors(end+1,:) = clPest;
 end
 if showGreedy
-    stairs(time,pd.Pgreedy*ones(size(time))/1e6,':','linewidth',lw+0.2,'color',cl(5,:));
+    stairs(time,pd.Pgreedy*ones(size(time))/1e6,'--','linewidth',lw,'color',cl(5,:)); % P_greedy dashed green
     farmNames{end+1} = 'P_{greedy}';
     farmColors(end+1,:) = cl(5,:);
 end
@@ -85,44 +87,44 @@ if showEst % estimated effective wind speeds (dark blue, dark red)
     turbNames = [turbNames, {'V_{r1,est}','V_{r2,est}'}];
     turbColors = [turbColors; 0 0 0.7; 0.7 0 0];
 end
-strLeg = ['Farm sig.: ', colorTitle(farmNames, farmColors), ...
-    '; Turbine sig.: ', colorTitle(turbNames, turbColors)];
-ylabel('P_{WF} (MW)');
-title({titleStr, strLeg},'FontWeight','normal');
+strLeg = ['Farm: ', colorTitle(farmNames, farmColors), ...
+    '; Turbine: ', colorTitle(turbNames, turbColors)];
+ylabel('Power P_{WF} (MW)'); % name and symbol as in chapter 4
+title({titleStr, strLeg});
 
-ax(2) = subplot(nSub,1,iSub(2));
+ax(2) = nexttile(tl,iSub(2));
 stairs(time,pd.uInf(time),'k','linewidth',lw); hold on; grid on;
 stairs(time,pd.u1(time),'color',cl(1,:),'linewidth',lw);
-ylabel('V (m/s)');
+ylabel('Wind V (m/s)');
 
-ax(3) = subplot(nSub,1,iSub(3));
+ax(3) = nexttile(tl,iSub(3));
 for idx = 1:N
     stairs(time,pd.CT_prime(idx,time),'color',cl(idx,:),'linewidth',lw); hold on;
 end
 grid on; ylim([-0.1 2.1]);
-ylabel('C_T'' (-)');
+ylabel('Thrust C_T'' (-)');
 
 if showYaw
-    ax(4) = subplot(nSub,1,iSub(4));
+    ax(4) = nexttile(tl,iSub(4));
     for idx = 1:N
         stairs(time,pd.Phi(idx,time),'color',cl(idx,:),'linewidth',lw); hold on;
     end
     grid on;
-    ylabel('\gamma (deg)');
+    ylabel(['Yaw \gamma (',char(176),')']); % degree sign as in the qLMPC plots
 end
 
-ax(5) = subplot(nSub,1,iSub(5));
+ax(5) = nexttile(tl,iSub(5));
 stairs(time,pd.V(1,time),'color',cl(1,:),'linewidth',lw); hold on; grid on;
 if showEst
-    stairs(time,pd.V_est(1,time),'--','linewidth',lw,'color',[0,0,0.7]);
+    stairs(time,pd.V_est(1,time),'--','linewidth',lw+0.5,'color',[0,0,0.7]);
 end
 stairs(time,pd.V(2,time),'color',cl(2,:),'linewidth',lw);
 if showEst
-    stairs(time,pd.V_est(2,time),'--','linewidth',lw,'color',[0.7,0,0]);
+    stairs(time,pd.V_est(2,time),'--','linewidth',lw+0.5,'color',[0.7,0,0]);
 end
-ylabel('V_r (m/s)');
+ylabel('Wind V_r (m/s)');
 if showUpdate
-    ax(6) = subplot(nSub,1,iSub(6));
+    ax(6) = nexttile(tl,iSub(6));
     stairs(time,pd.update(time),'k','linewidth',lw); grid on;
     ylabel('Update (-)');
 end
@@ -133,8 +135,6 @@ for idx = 1:numel(ax)
     axis(ax(idx),'tight');
     set(ax(idx),'FontSize',fs,'TickLabelInterpreter','tex');
 end
-ax(1).TitleFontSizeMultiplier = 11/fs; % title 11 pt (default 1.1*fs), fits the figure width
-ax(end).XLabel.FontSize = 12; % as all thesis figures
 axP = ax(1); axCT = ax(3); axUr = ax(end - showUpdate);
 ylim(axCT,[-0.1 2.1]);
 tP = time(time >= 60); % without the start-up
@@ -151,6 +151,7 @@ vAll = [pd.uInf(time), pd.u1(time)];
 ylim(ax(2),[min(vAll)-0.3, max(vAll)+0.3]);
 yl = ylim(axUr); ylim(axUr,yl + [-0.3 0.3]);
 if showUpdate, ylim(ax(end),[-0.1 1.1]); end
+setFigureFont(fig, fs); % all text 12 pt, bold titles
 
 if nargin > 2
     saveas(fig,fullfile(dirFig,[fileBase,'_Tex']),'fig');

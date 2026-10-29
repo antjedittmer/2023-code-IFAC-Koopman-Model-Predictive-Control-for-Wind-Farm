@@ -64,6 +64,8 @@ end
 [~, sigmaSel] = plotAICnoV1Sigma();
 VAFol = validateAICnoV1();
 test9 = testAICnoV1Vinf9();
+% 7 m/s model on its identification set and the validation set up to the ramp
+[VAFidVal, filesIdVal] = plotAICnoV1IdVal();
 cd(mainDir)
 
 %% 4. Closed loop: non-adaptive and adaptive AIC without V1
@@ -71,12 +73,14 @@ R = 1e-6; refstairs = 20; measured = 0; KoopmanStates = 6; PolyLiftingFunction =
 controller = 2; ControlSetStr = 'sowfa_2turb_aic_5000'; vinfStr = ''; kTimestep = 2;
 OptYaw = 0; KoopAIC = 1; Rvec = [1,1,0.001]; RU = 100; KoopFeat = 0; AICnoV1 = 1;
 Vinf = min(7 + 0.1*max((1:5001) - 2000, 0), 9);
+UrFromPower = 1; % 1 (default): Ur estimated from the power (urFromPower), 0: measured Ur
+urStr = repmat('_UrP',1,UrFromPower); % file name suffix of WFSim_demo
 resCL = table();
 for sol_update = [0 1]
     clear qLPVMPCcontroller_dU_quadprog % reset the persistent buffers of the controller
     rng(0); % excitation signal of the adaptive scheme
     [~,JR,JQ] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,controller, ...
-        ControlSetStr,Vinf,vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1);
+        ControlSetStr,Vinf,vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,[],UrFromPower);
     resCL = [resCL; table(sol_update, JQ*1e3, JR, 'VariableNames', {'Adaptive','TE_kW','AA'})]; %#ok<AGROW>
 end
 disp(VAFol)
@@ -94,11 +98,32 @@ figs = {fullfile(dirOL,'ValPVal_Non_adaptive'), 'AdaptiveAIC_OL_NonAdaptive'
         fullfile(dirOL,'ValPVal_Adaptive'), 'AdaptiveAIC_OL_Adaptive'
         fullfile(dirOL,'AdaptiveAIC_OL_Sigma'), 'AdaptiveAIC_OL_Sigma'
         fullfile(dirOL,'AdaptiveAIC_Test9'), 'AdaptiveAIC_OL_Test9'
-        fullfile(dirCL,'Stairs20R1dot0e_neg06_AICnoV1_Update0_Tex'), 'AdaptiveAIC_CL_NonAdaptive'
-        fullfile(dirCL,'Stairs20R1dot0e_neg06_AICnoV1_Update1_Tex'), 'AdaptiveAIC_CL_Adaptive'};
+        fullfile(dirCL,['Stairs20R1dot0e_neg06_AICnoV1',urStr,'_Update0_Tex']), 'AdaptiveAIC_CL_NonAdaptive'
+        fullfile(dirCL,['Stairs20R1dot0e_neg06_AICnoV1',urStr,'_Update1_Tex']), 'AdaptiveAIC_CL_Adaptive'};
 filetype = {'.png','.eps'};
 for idx = 1:size(figs,1)
     for idxT = 1:length(filetype)
         copyfile([figs{idx,1},filetype{idxT}], fullfile(thesisDir,[figs{idx,2},filetype{idxT}]));
     end
 end
+
+%% Copy png and eps with the file names of the thesis folder figures/figures_CDC22
+% (the folder can be copied to the thesis as it is)
+cdcDir = fullfile(mainDir,'figures_CDC22');
+if ~isfolder(cdcDir)
+    mkdir(cdcDir);
+end
+% {source, thesis file name}
+figsCDC = {filesIdVal{1}, 'Fig00_AIC7mpers_OL_id'
+           filesIdVal{2}, 'Fig00_AIC7mpers_OL_val'
+           fullfile(dirOL,'ValPVal_Non_adaptive'), 'Fig01_OL_Update0_tex'
+           fullfile(dirOL,'ValPVal_Adaptive'), 'Fig02_OL_Update1_tex'
+           fullfile(dirOL,'AdaptiveAIC_OL_Sigma'), 'Fig03_OL_Bode_tex'
+           fullfile(dirCL,['Stairs20R1dot0e_neg06_AICnoV1',urStr,'_Update0_Tex']), 'Fig04_CL_Update0_tex'
+           fullfile(dirCL,['Stairs20R1dot0e_neg06_AICnoV1',urStr,'_Update1_Tex']), 'Fig05_CL_Update1_tex'};
+for idx = 1:size(figsCDC,1)
+    for idxT = 1:length(filetype)
+        copyfile([figsCDC{idx,1},filetype{idxT}], fullfile(cdcDir,[figsCDC{idx,2},filetype{idxT}]));
+    end
+end
+disp(VAFidVal)

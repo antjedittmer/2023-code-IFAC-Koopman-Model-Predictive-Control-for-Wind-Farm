@@ -71,11 +71,11 @@ end
 grid on; axis tight;
 xlabel('Frequency (rad/s)');
 ylabel('Singular values (m/s)');
-set(gca, 'FontSize', 11, 'TickLabelInterpreter', 'tex');
-set(get(gca,'XLabel'), 'FontSize', 12); % as all thesis figures
+set(gca, 'TickLabelInterpreter', 'tex');
 title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
     ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
-    'FontWeight', 'normal', 'Interpreter', 'tex');
+    'Interpreter', 'tex');
+setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)

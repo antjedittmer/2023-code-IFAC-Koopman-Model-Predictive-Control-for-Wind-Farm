@@ -15,10 +15,11 @@ kTimestep =  2;
 sol_update = 0;
 OptYaw = 0;
 KoopAIC = 1;
+UrFromPower = 0; % measured Ur as in the paper (1: estimated from the power, urFromPower)
 
 % Run WFSim_demo with AIC with wind speed estimates with yaw == 0
  [~,JR0,JQ0]  = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC);
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,[1,1,0.001],100,0,0,[],UrFromPower);
 fig = gcf;
 fig.Name = sprintf('TimeSeries_OptYaw%d_KoopAIC%d',OptYaw,KoopAIC);
 
@@ -26,14 +27,14 @@ fig.Name = sprintf('TimeSeries_OptYaw%d_KoopAIC%d',OptYaw,KoopAIC);
 % greater greedy power
 OptYaw = 1;
  [~,JR1,JQ1]  = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC);
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,[1,1,0.001],100,0,0,[],UrFromPower);
 fig = gcf;
 fig.Name = sprintf('TimeSeries_OptYaw%d_KoopAIC%d',OptYaw,KoopAIC);
 
 % control)
 KoopAIC = 0;
  [sol_array,JR2,JQ2,fileName]  = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC);
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,[1,1,0.001],100,0,0,[],UrFromPower);
 fig = gcf;
 fig.Name = sprintf('TimeSeries_OptYaw%d_KoopAIC%d',OptYaw,KoopAIC);
 

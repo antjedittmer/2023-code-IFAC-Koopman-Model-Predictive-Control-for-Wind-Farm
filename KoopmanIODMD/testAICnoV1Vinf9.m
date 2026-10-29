@@ -79,19 +79,19 @@ for idxV = 1:2
         plot(k, UrEst{idx}(idxV,:), 'Color', cl(idx+1,:), 'LineWidth', 1);
     end
     grid on; axis tight;
-    ylabel(sprintf('V_{r%d} (m/s)', idxV));
-    set(gca, 'FontSize', 11);
-    if idxV == 2, xlabel('Time (s)', 'FontSize', 12); end
+    ylabel(sprintf('Wind V_{r%d} (m/s)', idxV));
+    if idxV == 2, xlabel('Time (s)'); end
     rmseStr = sprintf('%.2f/', R{iPlot, sprintf('RMSE_Ur%d', idxV)});
     rmseStr = ['RMSE = ', rmseStr(1:end-1), ' m/s'];
     if idxV == 1
         title({['Test data 9 m/s (unseen), V_{r1}: ', rmseStr], ...
             ['Measured, ', colorKey(cellstr(R.Model(iPlot)), cl(iPlot+1,:))]}, ...
-            'FontWeight', 'normal', 'Interpreter', 'tex');
+            'Interpreter', 'tex');
     else
-        title(['V_{r2}: ', rmseStr], 'FontWeight', 'normal', 'Interpreter', 'tex');
+        title(['V_{r2}: ', rmseStr], 'Interpreter', 'tex');
     end
 end
+setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_Test9'));
 disp(R)

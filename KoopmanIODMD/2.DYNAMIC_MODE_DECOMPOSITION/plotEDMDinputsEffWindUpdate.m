@@ -48,6 +48,7 @@ end
 addpath(fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))),'WFSimCode','libraries','figureExport')); % setFigureSize, printFigure
 noSub = size(Inputs_val,1) + 2;
 fig1 = figure;
+tl = tiledlayout(fig1, noSub, 1, 'TileSpacing', 'compact', 'Padding', 'compact'); % less white space than subplot
 posDefault = get(gcf, 'position');
 hFac = 1.3; % 4 subplots: 1.3 times the standard figure
 if noSub == 5 % as the closed-loop plots (plotWFSimTimeseriesTex)
@@ -57,7 +58,7 @@ set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4
 setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = colormap('lines');
 lw = 1;
-fs = 10;
+fs = 12;
 if isempty(tVec)
     kplot = 60: length(ysim_val);
     xk = 1:length(kplot);
@@ -66,12 +67,12 @@ else % time axis: the data start after the start-up (t0), show all
     xk = tVec(kplot);
 end
 
-subplot(noSub,1,1)
+nexttile(tl,1)
 plot(xk,Inputs_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
 hold on;
 plot(xk,Inputs_val(2,kplot),'LineWidth',lw,'Color', cl(2,:)) %3
 grid on; axis tight; ylim([0 2+0.2])
-ylabel('$C_T$ [-]','interpreter','latex','Fontsize',fs);
+ylabel('Thrust $C_T^\prime$ [-]','interpreter','latex','Fontsize',fs); % name and symbol as in chapter 4
 
 if displayOff
     title(sprintf('%s: VAF Ur1: %d, Ur2: %d',...
@@ -88,7 +89,7 @@ legend('boxoff')
 set(gca,'fontsize', fs)
 
 if noSub > 3
-    subplot(noSub,1,2)
+    nexttile(tl,2)
     if isempty(Vinf)
     plot(xk,Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
     else
@@ -96,44 +97,44 @@ if noSub > 3
     end
     grid on; axis tight
     if Vin && ~isempty(Vinf)
-        ylabel('$V$ [m/s]','interpreter','latex','Fontsize',fs);
+        ylabel('Wind $V$ [m/s]','interpreter','latex','Fontsize',fs);
         legend('$V_{\inf}$','$V_1$','interpreter','latex','Fontsize',fs,'orientation', 'horizontal','Location','NorthWest');
         legend('boxoff')
     elseif Vin
-        ylabel('Input $V_1$ [m/s]','interpreter','latex','Fontsize',fs);
+        ylabel('Wind $V_1$ [m/s]','interpreter','latex','Fontsize',fs);
     else
-        ylabel('Input $\Phi$ [deg]','interpreter','latex','Fontsize',fs);
+        ylabel('Yaw $\gamma$ [deg]','interpreter','latex','Fontsize',fs);
     end
     set(gca,'fontsize', fs)
 end
 
-subplot(noSub,1,noSub-2)
+nexttile(tl,noSub-2)
 plot(xk,Deterministic_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
 hold on;
 plot(xk,ysim_val(1,kplot),'Color',[0,0,0.6],'LineWidth',lw,'LineStyle','--') %3
 grid on; axis tight;
 pos = axis; axis([pos(1:3), pos(4)+0.3]);
 %xlabel('k [-]','interpreter','latex')
-ylabel('$U_{r1}$ [m/s]','interpreter','latex')
+ylabel('Wind $U_{r1}$ [m/s]','interpreter','latex')
 lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 %  0.6155    0.4802    0.2702    0.0397
 lgh.Position = [lgh.Position(1) + 0.02,lgh.Position(2:4)];
 legend('boxoff')
 set(gca,'fontsize', fs)
 
-subplot(noSub,1,noSub-1)
+nexttile(tl,noSub-1)
 plot(xk,Deterministic_val(2,kplot),'LineWidth',lw,'Color', cl(2,:)); %1
 hold on;
 plot(xk,ysim_val(2,kplot),'Color',[0.6, 0, 0.0],'LineWidth',lw,'LineStyle','--') %3
 grid on; axis tight
 pos = axis; axis([pos(1:3), pos(4)+0.3]);
-ylabel('$U_{r2}$ [m/s]','interpreter','latex','fontsize', fs)
+ylabel('Wind $U_{r2}$ [m/s]','interpreter','latex','fontsize', fs)
 lgh = legend({'Real','Est.'},'Location','southeast','interpreter','latex','fontsize',fs,'orientation','horizontal');
 lgh.Position = [0.2595    0.3585    0.2702    0.0397];
 legend('boxoff')
 set(gca,'fontsize', fs)
 
-subplot(noSub,1,noSub)
+nexttile(tl,noSub)
 if isempty(tVec)
     plot(min((Pvec-1),1),'k','LineWidth',lw); %1
 else
@@ -186,10 +187,9 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
     axTop.Title.String = {axTop.Title.String, ...
         ['Measured sig.: ', colorKey({'WT1','WT2','V_\infty'}, [cl(1,:); cl(2,:); 0 0 0]), ...
         '; Estimated sig.: ', colorKey({'V_{r1,est}','V_{r2,est}'}, [0 0 0.6; 0.6 0 0])]};
-    axTop.Title.FontWeight = 'normal';
     axs(1).YLabel.String = 'Update (-)';
-    set([axs.XLabel], 'FontSize', 12);
 end
+setFigureFont(fig1, fs); % all text 12 pt, bold titles
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
@@ -198,10 +198,13 @@ end
 
 function str = latex2tex(str)
 % latex2tex LaTeX label to TeX: no $, \inf -> \infty, units [..] -> (..),
-% U_r -> V_r
+% U_r -> V_r, C_T^\prime -> C_T'
+if iscell(str), str = cellfun(@latex2tex, str, 'UniformOutput', false); return; end
 str = strrep(str,'$','');
+str = strrep(str,'^\prime','''');
 str = strrep(str,'\inf}','\infty}');
 str = regexprep(str,'\[([^\]]*)\]','($1)');
+str = strrep(str,'(deg)',['(',char(176),')']); % degree sign as in the qLMPC plots
 str = regexprep(str,'\<Ur(\d)','V_{r$1}'); % VAF Ur1 -> V_{r1}
 str = regexprep(str,', r(\d):',', V_{r$1}:'); % VAF ..., r2 -> V_{r2}
 str = regexprep(str,'\<U(_?\{?r)','V$1'); % effective wind speed V_r as in the thesis
