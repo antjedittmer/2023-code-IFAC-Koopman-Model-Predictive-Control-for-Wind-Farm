@@ -124,8 +124,8 @@ if ~isfolder(ifacDir)
     mkdir(ifacDir);
 end
 % Identification and validation set of the WRC/AIC diagnostic plots
-idSetWRC = 'yaw_noise_step'; % identification data described in the thesis
-valSetWRC = 'yaw_ct_levels_val';
+idSetWRC = 'yaw_ct_levels'; % identification set with random CT and yaw levels (runCtLevelsOL)
+valSetWRC = 'yaw_ct_levels_val'; % validation set of the same type (runCtLevelsOL)
 diagFile = @(type, setName, var) fullfile(dirInputsOnly, sprintf('Diag_KoopFeatModel%d_%s',KoopFeat,var), ...
     ['Val', type, '_Yaw_', strrep(setName,'yaw_',''), '__n_K', ...
     sprintf('__%d__U_r___U_r_2___U_r_3__', KoopmanStates)]); % file name of plotEDMDinputsEffWind
