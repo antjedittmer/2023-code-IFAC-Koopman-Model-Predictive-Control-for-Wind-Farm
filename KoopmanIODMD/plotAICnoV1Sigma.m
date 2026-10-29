@@ -22,6 +22,7 @@ function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad, tSel)
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
+addpath(fullfile(mainDir,'WFSimCode','libraries','figureExport')); % setFigureSize, printFigure
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 if nargin < 1 || isempty(dirFig), dirFig = dirOut; end
 if nargin < 2 || isempty(filenameVal), filenameVal = 'sowfa_2turb_ct_levels_val'; end
@@ -74,8 +75,9 @@ set(gca, 'FontSize', 11, 'TickLabelInterpreter', 'tex');
 set(get(gca,'XLabel'), 'FontSize', 12); % as all thesis figures
 title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
     ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
-    'FontWeight', 'bold', 'Interpreter', 'tex');
-printFixedWidth(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
+    'FontWeight', 'normal', 'Interpreter', 'tex');
+setFigureSize(fig, [1 1]); % standard figure, independent of the screen
+printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)
 end
 
@@ -86,16 +88,4 @@ for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
 str = strjoin(parts, ', ');
-end
-
-function printFixedWidth(h, fName)
-% printFixedWidth saves figure h as vector .eps and 300 dpi .png with the
-% width of the standard MATLAB figure (560 px = 14.82 cm), the height from
-% the aspect ratio of the window (as plotEDMDinputsEffWindUpdate)
-pos = get(h, 'Position');
-sizeCm = 14.82*[1, pos(4)/pos(3)];
-set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
-    'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
-print(h, fName, '-depsc', '-painters', '-loose');
-print(h, fName, '-dpng', '-r300');
 end

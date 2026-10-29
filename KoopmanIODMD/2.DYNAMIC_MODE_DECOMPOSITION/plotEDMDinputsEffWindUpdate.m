@@ -45,13 +45,16 @@ else
     strK = '';
 end
 
+addpath(fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))),'WFSimCode','libraries','figureExport')); % setFigureSize, printFigure
+noSub = size(Inputs_val,1) + 2;
 fig1 = figure;
 posDefault = get(gcf, 'position');
-hFac = 1.2;
-if strcmpi(interp,'tex') % thesis: height as the closed-loop plots (plotWFSimTimeseriesTex, 5 subplots)
+hFac = 1.3; % 4 subplots: 1.3 times the standard figure
+if noSub == 5 % as the closed-loop plots (plotWFSimTimeseriesTex)
     hFac = 1.6;
 end
 set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*hFac]);
+setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = colormap('lines');
 lw = 1;
 fs = 10;
@@ -63,7 +66,6 @@ else % time axis: the data start after the start-up (t0), show all
     xk = tVec(kplot);
 end
 
-noSub = size(Inputs_val,1) + 2;
 subplot(noSub,1,1)
 plot(xk,Inputs_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
 hold on;
@@ -143,8 +145,9 @@ if ~isempty(marks) % updates after which the model is shown elsewhere
         % first sample (initial model): shifted to be visible next to the axis
         tMark = max(marks.Time_s(idx), xk(1) + 0.004*(xk(end)-xk(1)));
         plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2, 'LineStyle', '-');
-        % time stamp at the bottom, right of the line (left if TextSide = -1,
-        % with more space, the updates before are dense)
+        % time stamp at the bottom, right of the line (left if TextSide < 0,
+        % with more space, the updates before are dense), the magnitude of
+        % TextSide scales the distance
         side = 1;
         if ismember('TextSide', marks.Properties.VariableNames), side = marks.TextSide(idx); end
         hAlign = {'right','left'};
@@ -190,12 +193,7 @@ end
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
-if strcmpi(interp,'tex') % thesis: fixed width
-    printFixedWidth(fig1, fullfile(dirFig,['ValP',strVal1]));
-else
-    print(gcf,fullfile(dirFig,['ValP',strVal1]), '-dpng');
-    print(gcf,fullfile(dirFig,['ValP',strVal1]), '-depsc');
-end
+printFigure(fig1, fullfile(dirFig,['ValP',strVal1])); % fixed size (setFigureSize)
 end
 
 function str = latex2tex(str)
@@ -216,19 +214,4 @@ for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
 str = strjoin(parts, ', ');
-end
-
-function printFixedWidth(h, fName)
-% printFixedWidth saves figure h as vector .eps and 300 dpi .png with the
-% width of the standard MATLAB figure (560 px = 14.82 cm), the height from
-% the aspect ratio of the window: the output is laid out for this paper
-% size, not for the window, and the eps bounding box is the full paper
-% size (-loose), so that all thesis figures have the same width and font
-% size in LaTeX (e.g. two side by side with width=0.495	extwidth)
-pos = get(h, 'Position');
-sizeCm = 14.82*[1, pos(4)/pos(3)];
-set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
-    'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
-print(h, fName, '-depsc', '-painters', '-loose');
-print(h, fName, '-dpng', '-r300');
 end

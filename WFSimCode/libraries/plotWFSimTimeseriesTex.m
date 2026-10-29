@@ -54,7 +54,11 @@ end
 
 fig = figure;
 posDefault = get(fig, 'position');
-set(fig, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*(1.6 + 0.3*(nSub-5))]);
+% height: 5 subplots 1.6, 4 subplots 1.3 times the standard figure
+hFac = 1.6 + 0.3*(nSub-5);
+if nSub == 4, hFac = 1.3; end
+set(fig, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*hFac]);
+setFigureSize(fig, [1 hFac]); % export size independent of the screen
 
 ax = gobjects(nSub,1);
 ax(1) = subplot(nSub,1,1);
@@ -148,11 +152,9 @@ ylim(ax(2),[min(vAll)-0.3, max(vAll)+0.3]);
 yl = ylim(axUr); ylim(axUr,yl + [-0.3 0.3]);
 if showUpdate, ylim(ax(end),[-0.1 1.1]); end
 
-set(findall(gcf,'-property','FontSize'),'FontSize',12)
-
 if nargin > 2
     saveas(fig,fullfile(dirFig,[fileBase,'_Tex']),'fig');
-    printFixedWidth(fig, fullfile(dirFig,[fileBase,'_Tex']));
+    printFigure(fig, fullfile(dirFig,[fileBase,'_Tex'])); % fixed size (setFigureSize)
 end
 end
 
@@ -163,19 +165,4 @@ for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
 str = strjoin(parts, ', ');
-end
-
-function printFixedWidth(h, fName)
-% printFixedWidth saves figure h as vector .eps and 300 dpi .png with the
-% width of the standard MATLAB figure (560 px = 14.82 cm), the height from
-% the aspect ratio of the window: the output is laid out for this paper
-% size, not for the window, and the eps bounding box is the full paper
-% size (-loose), so that all thesis figures have the same width and font
-% size in LaTeX (e.g. two side by side with width=0.495	extwidth)
-pos = get(h, 'Position');
-sizeCm = 14.82*[1, pos(4)/pos(3)];
-set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
-    'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
-print(h, fName, '-depsc', '-vector', '-loose');
-print(h, fName, '-dpng', '-r300');
 end

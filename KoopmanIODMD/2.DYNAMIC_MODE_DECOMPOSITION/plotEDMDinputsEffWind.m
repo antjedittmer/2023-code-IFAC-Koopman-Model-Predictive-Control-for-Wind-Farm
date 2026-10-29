@@ -49,7 +49,18 @@ if size(ysim_val,2) < size(ysim_val,1)
 end
 
 
+addpath(fullfile(fileparts(fileparts(fileparts(mfilename('fullpath')))),'WFSimCode','libraries','figureExport')); % setFigureSize, printFigure
+noSubIn = size(Inputs_val,1);
+noSubOut =  min(size(ysim_val));
+noSub = noSubOut + noSubIn -1;
 fig1 = figure;
+hFac = 1; % height: 5 subplots 1.6 (as the closed-loop plots), 4 subplots 1.3 times the standard figure
+if noSub == 5, hFac = 1.6; elseif noSub == 4, hFac = 1.3; end
+if hFac > 1
+    posDefault = get(gcf, 'position');
+    set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*hFac]);
+end
+setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = lines;
 lw = 1;
 fs = 10;
@@ -60,9 +71,6 @@ else
     xk = tVec(kplot);
 end
 
-noSubIn = size(Inputs_val,1);
-noSubOut =  min(size(ysim_val));
-noSub = noSubOut + noSubIn -1;
 subplot(noSub,1,1)
 plot(xk,Inputs_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
 hold on;
@@ -165,12 +173,7 @@ end
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
-if strcmpi(interp,'tex') % thesis: fixed width
-    printFixedWidth(fig1, fullfile(dirFig,['Val',strVal1]));
-else
-    print(gcf,fullfile(dirFig,['Val',strVal1]), '-dpng');
-    print(gcf,fullfile(dirFig,['Val',strVal1]), '-depsc');
-end
+printFigure(fig1, fullfile(dirFig,['Val',strVal1])); % fixed size (setFigureSize)
 end
 
 function str = latex2tex(str)
@@ -192,19 +195,4 @@ for idx = 1:numel(names)
     parts{idx} = sprintf('{\\color[rgb]{%.3f,%.3f,%.3f}%s}', colors(idx,:), names{idx});
 end
 str = strjoin(parts, ', ');
-end
-
-function printFixedWidth(h, fName)
-% printFixedWidth saves figure h as vector .eps and 300 dpi .png with the
-% width of the standard MATLAB figure (560 px = 14.82 cm), the height from
-% the aspect ratio of the window: the output is laid out for this paper
-% size, not for the window, and the eps bounding box is the full paper
-% size (-loose), so that all thesis figures have the same width and font
-% size in LaTeX (e.g. two side by side with width=0.495	extwidth)
-pos = get(h, 'Position');
-sizeCm = 14.82*[1, pos(4)/pos(3)];
-set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
-    'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
-print(h, fName, '-depsc', '-painters', '-loose');
-print(h, fName, '-dpng', '-r300');
 end
