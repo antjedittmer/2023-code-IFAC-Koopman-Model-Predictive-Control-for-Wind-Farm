@@ -148,6 +148,8 @@ ylim(ax(2),[min(vAll)-0.3, max(vAll)+0.3]);
 yl = ylim(axUr); ylim(axUr,yl + [-0.3 0.3]);
 if showUpdate, ylim(ax(end),[-0.1 1.1]); end
 
+set(findall(gcf,'-property','FontSize'),'FontSize',12)
+
 if nargin > 2
     saveas(fig,fullfile(dirFig,[fileBase,'_Tex']),'fig');
     printFixedWidth(fig, fullfile(dirFig,[fileBase,'_Tex']));
@@ -174,6 +176,6 @@ pos = get(h, 'Position');
 sizeCm = 14.82*[1, pos(4)/pos(3)];
 set(h, 'PaperUnits', 'centimeters', 'PaperPositionMode', 'manual', ...
     'PaperSize', sizeCm, 'PaperPosition', [0 0 sizeCm]);
-print(h, fName, '-depsc', '-painters', '-loose');
+print(h, fName, '-depsc', '-vector', '-loose');
 print(h, fName, '-dpng', '-r300');
 end

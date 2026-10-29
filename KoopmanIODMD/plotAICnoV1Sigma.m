@@ -74,7 +74,7 @@ set(gca, 'FontSize', 11, 'TickLabelInterpreter', 'tex');
 set(get(gca,'XLabel'), 'FontSize', 12); % as all thesis figures
 title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
     ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
-    'FontWeight', 'normal', 'Interpreter', 'tex');
+    'FontWeight', 'bold', 'Interpreter', 'tex');
 printFixedWidth(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)
 end

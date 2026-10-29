@@ -49,7 +49,7 @@ if isempty(dir(fullfile(mainDir,'DataT2OLWFSim','Vinf7dot0To9dot0_OL_Ct','*sowfa
 end
 
 %% 2. Koopman effective wind speed model without V1 (inputs CT1, CT2)
-if ~isfile(fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC','KoopAICnoV1.mat'))
+if ~isfile(fullfile(mainDir,'DataInOutWfSim','AdaptiveAICdbs','KoopAICnoV1.mat'))
     identifyAICnoV1();
 end
 if ~isfile(fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC','KoopAICnoV1_Vinf9.mat'))
@@ -58,7 +58,7 @@ end
 
 %% 3. Open-loop validation: non-adaptive and online updated model,
 % singular values of the updated models vs. the offline model at 9 m/s
-cd KoopmanIODMD
+% cd KoopmanIODMD
 % models at 240, 5100, 6000, 8000 s (aicNoV1ModelTimes), marked in color in
 % the adaptive validation plot
 [~, sigmaSel] = plotAICnoV1Sigma();
