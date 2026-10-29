@@ -75,15 +75,17 @@ VAFdiag = plotPowerStatesDiag(sprintf('KoopFeatModel%d.mat',KoopFeat), valN, 240
 R = 1e-6; refstairs = -1; measured = 0; controller = 2; Vinf = 8;
 ControlSetStr = 'sowfa_2turb_alm_turbl'; PolyLiftingFunction = 0; KoopmanStates = 6;
 vinfStr = ''; kTimestep = 2; sol_update = 0; Rvec = [1,1,0.001]; RU = 100;
+UrFromPower = 1; % 1 (default): Ur estimated from the power (urFromPower), 0: measured Ur
+urStr = repmat('_UrP',1,UrFromPower); % file name suffix of WFSim_demo
 
 % {name, OptYaw, KoopAIC, KoopFeat}
 cases = {'Baseline AIC',          0, 0, KoopFeat
-         'AIC with static yaw',   2, 0, KoopFeat
+         'AIC static yaw',   2, 0, KoopFeat
          'WRC-AIC',               1, 0, KoopFeat};
 resCL = table();
 for idxC = 1:size(cases,1)
     [~,JR,JQ] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-        controller,ControlSetStr,Vinf,vinfStr,kTimestep,sol_update,cases{idxC,2},cases{idxC,3},Rvec,RU,cases{idxC,4});
+        controller,ControlSetStr,Vinf,vinfStr,kTimestep,sol_update,cases{idxC,2},cases{idxC,3},Rvec,RU,cases{idxC,4},0,[],UrFromPower);
     fig = gcf; fig.Name = cases{idxC,1};
     resCL = [resCL; table(string(cases{idxC,1}), JQ*1e3, JR, 'VariableNames', {'Case','TE_kW','AA'})]; %#ok<AGROW>
 end
@@ -96,9 +98,9 @@ if ~isfolder(thesisDir)
     mkdir(thesisDir);
 end
 origDirCL = fullfile(mainDir,'DataT2OLWFSim','Vinf8dot0_CL_K06_P0');
-filenamesCL = {sprintf('R1dot0e_neg06_KoopAIC0_OptYaw0_KoopFeat%d_Update0_Tex',KoopFeat), ...
-    sprintf('R1dot0e_neg06_KoopAIC0_OptYaw2_KoopFeat%d_Update0_Tex',KoopFeat), ...
-    sprintf('R1dot0e_neg06_KoopAIC0_KoopFeat%d_Update0_Tex',KoopFeat)};
+filenamesCL = {sprintf('R1dot0e_neg06_KoopAIC0_OptYaw0_KoopFeat%d%s_Update0_Tex',KoopFeat,urStr), ...
+    sprintf('R1dot0e_neg06_KoopAIC0_OptYaw2_KoopFeat%d%s_Update0_Tex',KoopFeat,urStr), ...
+    sprintf('R1dot0e_neg06_KoopAIC0_KoopFeat%d%s_Update0_Tex',KoopFeat,urStr)};
 filetype = {'.png','.eps'};
 for idx = 1:length(filenamesCL)
     for idxT = 1:length(filetype)
@@ -112,5 +114,31 @@ for diagDir = {sprintf('Diag_KoopFeatModel%d_Ur',KoopFeat), sprintf('Diag_KoopFe
             copyfile(fullfile(files(idx).folder,files(idx).name), ...
                 fullfile(thesisDir,[diagDir{1},'_',files(idx).name]));
         end
+    end
+end
+
+%% Copy png and eps with the file names of the thesis folder figures/figures_IFAC23
+% (the folder can be copied to the thesis as it is)
+ifacDir = fullfile(mainDir,'figures_IFAC23');
+if ~isfolder(ifacDir)
+    mkdir(ifacDir);
+end
+% Identification and validation set of the WRC/AIC diagnostic plots
+idSetWRC = 'yaw_ct_levels'; % identification set with random CT and yaw levels (runCtLevelsOL)
+valSetWRC = 'yaw_ct_levels_val'; % validation set of the same type (runCtLevelsOL)
+diagFile = @(type, setName, var) fullfile(dirInputsOnly, sprintf('Diag_KoopFeatModel%d_%s',KoopFeat,var), ...
+    ['Val', type, '_Yaw_', strrep(setName,'yaw_',''), '__n_K', ...
+    sprintf('__%d__U_r___U_r_2___U_r_3__', KoopmanStates)]); % file name of plotEDMDinputsEffWind
+% {source, thesis file name}
+figsIFAC = {fullfile(origDirCL,filenamesCL{1}), '04FigTimeSeries0_tex'
+            fullfile(origDirCL,filenamesCL{2}), '05FigTimeSeriesQLMPC_tex'
+            fullfile(origDirCL,filenamesCL{3}), '06FigTimeSeriesLinMPC_tex'
+            diagFile('Id', idSetWRC, 'Ur'), '03aFig_WRC_Id_Vr'
+            diagFile('Id', idSetWRC, 'P'), '03aFig_WRC_Id_P'
+            diagFile('Val', valSetWRC, 'Ur'), '03aFig_WRC_Val_Vr'
+            diagFile('Val', valSetWRC, 'P'), '03aFig_WRC_Val_P'};
+for idx = 1:size(figsIFAC,1)
+    for idxT = 1:length(filetype)
+        copyfile([figsIFAC{idx,1},filetype{idxT}], fullfile(ifacDir,[figsIFAC{idx,2},filetype{idxT}]));
     end
 end

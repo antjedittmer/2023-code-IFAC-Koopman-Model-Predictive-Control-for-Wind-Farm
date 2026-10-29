@@ -54,8 +54,9 @@ noSubIn = size(Inputs_val,1);
 noSubOut =  min(size(ysim_val));
 noSub = noSubOut + noSubIn -1;
 fig1 = figure;
-hFac = 1; % height: 5 subplots 1.6 (as the closed-loop plots), 4 subplots 1.3 times the standard figure
-if noSub == 5, hFac = 1.6; elseif noSub == 4, hFac = 1.3; end
+tl = tiledlayout(fig1, noSub, 1, 'TileSpacing', 'compact', 'Padding', 'compact'); % less white space than subplot
+hFac = 1; % height: 5 subplots 1.6 (as the closed-loop plots), 4 subplots 1.3, 3 subplots 1.15 times the standard figure
+if noSub == 5, hFac = 1.6; elseif noSub == 4, hFac = 1.3; elseif noSub == 3, hFac = 1.15; end
 if hFac > 1
     posDefault = get(gcf, 'position');
     set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4)*hFac]);
@@ -63,7 +64,7 @@ end
 setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = lines;
 lw = 1;
-fs = 10;
+fs = 12;
 kplot = 60: length(ysim_val);
 if isempty(tVec)
     xk = 1:length(kplot);
@@ -71,12 +72,12 @@ else
     xk = tVec(kplot);
 end
 
-subplot(noSub,1,1)
+nexttile(tl,1)
 plot(xk,Inputs_val(1,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
 hold on;
 plot(xk,Inputs_val(2,kplot),'LineWidth',lw,'Color', cl(2,:)) %3
 grid on; axis tight; ylim([0 2+0.2])
-ylabel('$C_T$ [-]','interpreter','latex','Fontsize',fs);
+ylabel('Thrust $C_T^\prime$ [-]','interpreter','latex','Fontsize',fs); % name and symbol as in chapter 4
 
 if displayOff && length(FITje_val) >1
     title(sprintf('%s:  VAF %sr1: %d, r2: %d',...
@@ -99,28 +100,31 @@ legend(regexp(strLeg(1:end-1), ',', 'split'),'interpreter','latex','Fontsize',fs
 set(gca,'fontsize', fs)
 
 if noSubIn > 2
-    subplot(noSub,1,2)
+    nexttile(tl,2)
     if isempty(Vinf)
         plot(xk,Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
     else
         plot(xk,Vinf(kplot),'k','LineWidth',lw); hold on; plot(xk,Inputs_val(3,kplot),'LineWidth',lw,'Color', cl(1,:));
     end
     grid on; axis tight
+    if ~isempty(Vinf) % V_inf line not on the axis limit
+        ylim(ylim + [-0.2 0.2]);
+    end
     if Vin && ~isempty(Vinf)
-        ylabel('$V$ [m/s]','interpreter','latex','Fontsize',fs);
+        ylabel('Wind $V$ [m/s]','interpreter','latex','Fontsize',fs);
         legend('$V_{\inf}$','$V_1$','interpreter','latex','Fontsize',fs,'orientation', 'horizontal','Location','NorthWest');
         %legend('boxoff')
     elseif (Vin && noSub == 4) || (~Vin && noSub == 3) 
-         ylabel('$\gamma$ [deg]','interpreter','latex','Fontsize',fs);       
+         ylabel('Yaw $\gamma$ [deg]','interpreter','latex','Fontsize',fs);       
     else
-        ylabel('$V_1$ [m/s]','interpreter','latex','Fontsize',fs);
+        ylabel('Wind $V_1$ [m/s]','interpreter','latex','Fontsize',fs);
     end
     set(gca,'fontsize', fs)
     
     if noSubIn > 3 %&& noSub ~= 4
-        subplot(noSub,1,3)
+        nexttile(tl,3)
         plot(xk,Inputs_val(4,kplot),'LineWidth',lw,'Color', cl(1,:)); %1
-        ylabel('$V_1$ [m/s]','interpreter','latex','Fontsize',fs);
+        ylabel('Wind $V_1$ [m/s]','interpreter','latex','Fontsize',fs);
         grid on; axis tight
     end
     
@@ -134,7 +138,7 @@ end
 
 for idx = 1: noSubOut
     idxT = 2-mod(idx,2);
-    subplot(noSub,1,noSub - (noSubOut-idx))
+    nexttile(tl,noSub - (noSubOut-idx))
     plot(xk,Deterministic_val(idx,kplot),'LineWidth',lw,'Color', cl(idxT,:)); %1
     hold on;
     plot(xk,ysim_val(idx,kplot),'Color',[0,0,0],'LineWidth',lw,'LineStyle','--') %3
@@ -142,7 +146,9 @@ for idx = 1: noSubOut
     pos = axis; axis([pos(1:3), pos(4)+0.3]);
 
     %xlabel('k [-]','interpreter','latex')
-    ylabel(['$',strOut,strAdd{idxT}],'interpreter','latex')
+    sigName = 'Wind';
+    if noSubOut == 1, sigName = 'Power'; end
+    ylabel([sigName,' $',strOut,strAdd{idxT}],'interpreter','latex')
     legend({'Real','Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
     %legend('boxoff')
     set(gca,'fontsize', fs)
@@ -165,10 +171,17 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     else
         estNames = {'V_{r1,est}','V_{r2,est}'};
     end
+    measNames = {'WT1','WT2'}; measColors = [cl(1,:); cl(2,:)];
+    if Vin && ~isempty(Vinf) % free stream wind speed (black) in the wind subplot
+        measNames{end+1} = 'V_\infty'; measColors(end+1,:) = [0 0 0];
+    end
     axTop.Title.String = {axTop.Title.String, ...
-        ['Measured sig.: ', colorKey({'WT1','WT2'}, [cl(1,:); cl(2,:)]), ...
+        ['Measured sig.: ', colorKey(measNames, measColors), ...
         '; Estimated sig.: ', colorKey(estNames, zeros(numel(estNames),3))]};
-    axTop.Title.FontWeight = 'normal';
+end
+setFigureFont(fig1, fs); % all text 12 pt, bold titles
+for ax = findall(fig1,'Type','axes')' % time in s without x10^4 (long identification sets): no extra row
+    ax.XAxis.Exponent = 0;
 end
 
 %sys_red{1,1}.Xint = xo;
@@ -178,10 +191,13 @@ end
 
 function str = latex2tex(str)
 % latex2tex LaTeX label to TeX: no $, \inf -> \infty, units [..] -> (..),
-% U_r -> V_r
+% U_r -> V_r, C_T^\prime -> C_T'
+if iscell(str), str = cellfun(@latex2tex, str, 'UniformOutput', false); return; end
 str = strrep(str,'$','');
+str = strrep(str,'^\prime','''');
 str = strrep(str,'\inf}','\infty}');
 str = regexprep(str,'\[([^\]]*)\]','($1)');
+str = strrep(str,'(deg)',['(',char(176),')']); % degree sign as in the qLMPC plots
 str = regexprep(str,'\<Ur(\d)','V_{r$1}'); % VAF Ur1 -> V_{r1}
 str = regexprep(str,'VAF PT:','VAF P_T:'); % farm power as in the y label
 str = regexprep(str,', r(\d):',', V_{r$1}:'); % VAF ..., r2 -> V_{r2}

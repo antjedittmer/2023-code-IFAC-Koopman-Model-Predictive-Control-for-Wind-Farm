@@ -21,6 +21,9 @@
 % mainGeneratePlotThesisAdaptiveAIC if they do not exist. Closed-loop runs
 % whose plot data exist are not repeated (WFSim_demo), so a second call
 % only recreates the figures and the table.
+% Closed loop with the effective wind speeds estimated from the power
+% (UrFromPower = 1, default of WFSim_demo) or measured (UrFromPower = 0,
+% outputs in figSensitivityAdaptiveAIC_UrMeas).
 clc; clear; close all;
 mainDir = fileparts(mfilename('fullpath'));
 cd(mainDir);
@@ -44,7 +47,8 @@ warning('off','MATLAB:nearlySingularMatrix'); % online updates with little excit
 
 nuVec = [0.3 0.15 0.1 0.05 0.02]; % trigger threshold (m/s)
 hVec = [5 10 20]; % window/batch length (samples)
-figDir = fullfile(mainDir,'figSensitivityAdaptiveAIC');
+UrFromPower = 1; % closed loop: 1 (default) Ur estimated from the power (urFromPower), 0 measured Ur
+figDir = fullfile(mainDir,['figSensitivityAdaptiveAIC',repmat('_UrMeas',1,~UrFromPower)]);
 if ~isfolder(figDir), mkdir(figDir); end
 tmpDir = fullfile(figDir,'tmp');
 if ~isfolder(tmpDir), mkdir(tmpDir); end
@@ -113,10 +117,10 @@ for idx = 1:size(cases,1)
     clear qLPVMPCcontroller_dU_quadprog % reset the persistent buffers of the controller
     rng(0); % excitation signal of the adaptive scheme
     WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,controller, ...
-        ControlSetStr,VinfCL,vinfStr,kTimestep,adaptive,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad);
+        ControlSetStr,VinfCL,vinfStr,kTimestep,adaptive,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad,UrFromPower);
     baseCL = 'Stairs20R1dot0e_neg06_AICnoV1';
     if adaptive, baseCL = sprintf('%s_nu%03d_h%d', baseCL, round(100*nu), h); end
-    baseCL = sprintf('%s_Update%d', baseCL, adaptive);
+    baseCL = sprintf('%s%s_Update%d', baseCL, repmat('_UrP',1,UrFromPower), adaptive);
     tmp = load(fullfile(dirCL,[baseCL,'_plotData.mat']),'pd'); pd = tmp.pd;
     for ext = {'.png','.eps'}
         copyfile(fullfile(dirCL,[baseCL,'_Tex',ext{1}]), fullfile(figDir,['CL_',tag,ext{1}]));
@@ -141,7 +145,7 @@ rmdir(tmpDir,'s');
 %% Results: mat, csv and LaTeX table
 save(fullfile(figDir,'sensitivityAdaptiveAIC.mat'),'res');
 writetable(res, fullfile(figDir,'sensitivityAdaptiveAIC.csv'));
-writeLatexTable(res, fullfile(figDir,'tab_sensitivityAdaptiveAIC.tex'));
+writeLatexTable(res, fullfile(figDir,'tab_sensitivityAdaptiveAIC.tex'), UrFromPower);
 format short g
 disp(res)
 
@@ -154,11 +158,12 @@ for ext = {'.png','.eps'}
 end
 end
 
-function writeLatexTable(res, fileName)
+function writeLatexTable(res, fileName, UrFromPower)
 % writeLatexTable sensitivity table (booktabs, adjustbox): VAF <= 0 as
 % $\leq 0$, a diverging estimate of the frozen learned model as div.
 fid = fopen(fileName,'w');
 c = onCleanup(@() fclose(fid));
+urStr = {'measured', 'estimated from the power'};
 L = {['% Created by runSensitivityAdaptiveAIC on ', char(datetime('now','Format','yyyy-MM-dd'))]
     '% Adaptive AIC without V1: trigger threshold nu and window/batch length h of the online update'
     '\begin{table}[htbp]'
@@ -167,7 +172,7 @@ L = {['% Created by runSensitivityAdaptiveAIC on ', char(datetime('now','Format'
     'trigger threshold $\nu$ and the window and batch length $h$ of the online update. Open loop: validation data ', ...
     'with the wind ramp from 7 to 9\,m/s at $t = 5000$\,s (from 240\,s), RMSE after the ramp; the model learned ', ...
     'on these data is frozen and tested on unseen data at constant 9\,m/s. Closed loop: qLMPC with the ramp from 7 to ', ...
-    '9\,m/s at $k = 2000$; TE tracking error, AA actuator activity. $N_\text{upd}$: number of model updates.}']
+    '9\,m/s at $k = 2000$, effective wind speeds ', urStr{UrFromPower+1}, '; TE tracking error, AA actuator activity. $N_\text{upd}$: number of model updates.}']
     '    \label{tab:sensitivityAdaptiveAIC}'
     '    \begin{adjustbox}{max width=\textwidth}'
     '    \begin{tabular}{rr rrrrr rr rrrr}'
