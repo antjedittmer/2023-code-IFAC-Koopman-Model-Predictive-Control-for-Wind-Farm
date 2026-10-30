@@ -95,7 +95,8 @@ fs = 12;
 kplot = 60: length(ysim_val);
 if isempty(tVec)
     xk = 1:length(kplot);
-else
+else % time axis: the data start after the start-up (t0), show all (as the VAF)
+    kplot = 1:length(ysim_val);
     xk = tVec(kplot);
 end
 
