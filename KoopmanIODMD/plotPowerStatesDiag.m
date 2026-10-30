@@ -1,4 +1,4 @@
-function R = plotPowerStatesDiag(modelFile, filenameVal, t0)
+function R = plotPowerStatesDiag(modelFile, filenameVal, t0, refModelFile, refName, filenameIdPlot)
 % plotPowerStatesDiag diagnostic plots of the open-loop identification of
 % the input-only Koopman power model (KoopFeatModel<k>.mat, runKoopStatesCL):
 % per identification set (model.filenameId) and validation set one figure
@@ -12,6 +12,10 @@ function R = plotPowerStatesDiag(modelFile, filenameVal, t0)
 % - modelFile: default KoopFeatModel3.mat ('Ur n=6')
 % - filenameVal: validation sets (cell)
 % - t0: first sample (s) as in the identification
+% - refModelFile: optional reference model (KoopFeatModel<k>.mat), whose
+%   estimates are shown as grey lines (simulated in the same way)
+% - refName: name of the reference model in the plots (default 'Ref. model')
+% - filenameIdPlot: identification sets to plot (default: all of model.filenameId)
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 dirOut = fullfile(mainDir,'DataInOutWfSim','PowerInputsOnly');
@@ -21,11 +25,18 @@ if nargin < 2 || isempty(filenameVal)
         'Vinf8dot0_sowfa_2turb_yaw_steps_Ct_comb'};
 end
 if nargin < 3, t0 = 240; end
+if nargin < 4, refModelFile = ''; end
+if nargin < 5 || isempty(refName), refName = 'Ref. model'; end
+if nargin < 6, filenameIdPlot = []; end
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % powerFeatures, koopFeatState
 
 tmp = load(fullfile(dirOut,modelFile),'model');
 model = tmp.model;
 sys = ss(model.A, model.B, model.C, model.D, 1);
+if ~isempty(refModelFile)
+    tmp = load(fullfile(dirOut,refModelFile),'model');
+    modelRef = tmp.model;
+end
 [~, modelName] = fileparts(modelFile);
 dirUr = fullfile(dirOut, sprintf('Diag_%s_Ur', modelName));
 dirP = fullfile(dirOut, sprintf('Diag_%s_P', modelName));
@@ -35,6 +46,10 @@ if ~isfolder(dirP), mkdir(dirP); end
 % on) and validation sets
 filenameId = model.filenameId;
 if ischar(filenameId), filenameId = {filenameId}; end
+if ~isempty(filenameIdPlot)
+    if ischar(filenameIdPlot), filenameIdPlot = {filenameIdPlot}; end
+    filenameId = filenameIdPlot;
+end
 setNames = [filenameId(:); filenameVal(:)];
 isId = [true(numel(filenameId),1); false(numel(filenameVal),1)];
 R = table();
@@ -60,6 +75,10 @@ for idxV = 1:numel(setNames)
     Ur = S.lifted(1:2,2:end);
     [y, ~, xSim] = lsim(sys, W', [], X(:,1));
     y = y'; UrSim = xSim(:,1:2)';
+    UrRef = []; yRef = [];
+    if ~isempty(refModelFile) % reference model, simulated as the model
+        [UrRef, yRef] = simModel(modelRef, S);
+    end
 
     vafUr = [vaf(Ur(1,:), UrSim(1,:)), vaf(Ur(2,:), UrSim(2,:))];
     vafP = vaf(P, y);
@@ -75,12 +94,25 @@ for idxV = 1:numel(setNames)
         model.n, stateStr(model.stateSet));
     inp = S.lifted(end-2:end,2:end);
     t = t0 + (1:numel(P)); % time (s), samples from t0 + 1 on (dt = 1 s)
-    fig = plotEDMDinputsEffWind(UrSim, inp, Ur, vafUr, dirUr, 1, model.n, strVal, 1, [], 'U', t, 'tex');
+    fig = plotEDMDinputsEffWind(UrSim, inp, Ur, vafUr, dirUr, 1, model.n, strVal, 1, [], 'U', t, 'tex', UrRef, refName);
     set(fig,'Name',sprintf('Ur %s',setName));
-    fig = plotEDMDinputsEffWind(y, inp, P, vafP, dirP, 0, model.n, strVal, 1, [], 'P', t, 'tex'); % Vin = 0: 3rd input labelled gamma
+    fig = plotEDMDinputsEffWind(y, inp, P, vafP, dirP, 0, model.n, strVal, 1, [], 'P', t, 'tex', yRef, refName); % Vin = 0: 3rd input labelled gamma
     set(fig,'Name',sprintf('P %s',setName));
 end
 disp(R)
+end
+
+function [UrSim, y] = simModel(model, S)
+% simModel simulates a power model from the measured initial state (from
+% the second sample on, as above): estimates of Ur1, Ur2 and the farm power
+urS = struct('M',S.lifted(1:2,1),'UrPrev',S.lifted(1:2,1),'k',1);
+X = zeros(model.n, size(S.lifted,2));
+for k = 1:size(S.lifted,2)
+    [X(:,k), urS] = koopFeatState(model, S.lifted(1:2,k), urS);
+end
+W = powerFeatures(S.lifted(end-2:end,:), model.featureSet, model.tau);
+[y, ~, xSim] = lsim(ss(model.A, model.B, model.C, model.D, 1), W(:,2:end)', [], X(:,2));
+y = y'; UrSim = xSim(:,1:2)';
 end
 
 function str = stateStr(stateSet)

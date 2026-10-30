@@ -1,10 +1,12 @@
-function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,displayOff,Vinf,strOut,tVec,interp)
+function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,displayOff,Vinf,strOut,tVec,interp,ysimRef,refName)
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
 % Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
 % in (), no legends: the first title names the measured (WT1, WT2) and the
 % estimated signals in their colors)
+% Optional ysimRef: estimates of a reference model (same size as ysim_val),
+% plotted as grey lines; refName: its name in the legend/title key
 
 if nargin < 6
     Vin = 0;
@@ -37,6 +39,18 @@ if nargin < 13
     interp = 'latex';
 end
 
+if nargin < 14
+    ysimRef = [];
+end
+
+if nargin < 15 || isempty(refName)
+    refName = 'Ref.';
+end
+
+if ~isempty(ysimRef) && size(ysimRef,2) < size(ysimRef,1)
+    ysimRef = ysimRef';
+end
+
 if nx > 0
     strK =  sprintf(', $n_K$ = %d', nx);
 else
@@ -64,6 +78,7 @@ end
 setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = lines;
 lw = 1;
+greyRef = [0.6 0.6 0.6]; % reference model estimates
 fs = 12;
 kplot = 60: length(ysim_val);
 if isempty(tVec)
@@ -141,6 +156,9 @@ for idx = 1: noSubOut
     nexttile(tl,noSub - (noSubOut-idx))
     plot(xk,Deterministic_val(idx,kplot),'LineWidth',lw,'Color', cl(idxT,:)); %1
     hold on;
+    if ~isempty(ysimRef) % reference model (grey) below the estimate
+        plot(xk,ysimRef(idx,kplot),'Color',greyRef,'LineWidth',lw)
+    end
     plot(xk,ysim_val(idx,kplot),'Color',[0,0,0],'LineWidth',lw,'LineStyle','--') %3
     grid on; axis tight;
     pos = axis; axis([pos(1:3), pos(4)+0.3]);
@@ -149,7 +167,11 @@ for idx = 1: noSubOut
     sigName = 'Wind';
     if noSubOut == 1, sigName = 'Power'; end
     ylabel([sigName,' $',strOut,strAdd{idxT}],'interpreter','latex')
-    legend({'Real','Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
+    if isempty(ysimRef)
+        legend({'Real','Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
+    else
+        legend({'Real',refName,'Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
+    end
     %legend('boxoff')
     set(gca,'fontsize', fs)
     
@@ -175,9 +197,13 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     if Vin && ~isempty(Vinf) % free stream wind speed (black) in the wind subplot
         measNames{end+1} = 'V_\infty'; measColors(end+1,:) = [0 0 0];
     end
+    strRef = '';
+    if ~isempty(ysimRef) % reference model in grey
+        strRef = ['; ', colorKey({refName}, greyRef)];
+    end
     axTop.Title.String = {axTop.Title.String, ...
         ['Measured sig.: ', colorKey(measNames, measColors), ...
-        '; Estimated sig.: ', colorKey(estNames, zeros(numel(estNames),3))]};
+        '; Estimated sig.: ', colorKey(estNames, zeros(numel(estNames),3)), strRef]};
 end
 setFigureFont(fig1, fs); % all text 12 pt, bold titles
 for ax = findall(fig1,'Type','axes')' % time in s without x10^4 (long identification sets): no extra row

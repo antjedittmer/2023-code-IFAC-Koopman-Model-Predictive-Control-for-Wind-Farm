@@ -4,7 +4,7 @@ function [W, M] = powerFeatures(inp, featureSet, tau, Mprev)
 %
 % Inputs
 % - inp: [ct1; ct2; phi1] (phi1 in deg), one column per time step
-% - featureSet: 'u+1', 'u+1+M', 'NL+1', 'NL+1+M' or 'NL+1+M+x'
+% - featureSet: 'u', 'u+1', 'u+1+M', 'NL+1', 'NL+1+M' or 'NL+1+M+x'
 % - tau: time constant of the moving means (s, time step 1 s)
 % - Mprev: moving means [M(ct1); M(phi1); M(a1); M(a1*c1^2)] before the
 %   first column (default: the values of the first column, i.e. steady state)
@@ -14,6 +14,7 @@ function [W, M] = powerFeatures(inp, featureSet, tau, Mprev)
 % - M: moving means after the last column (state for the next call)
 %
 % Features (c1 = cos(phi1), induction a1 = (ct1/4)/(1+ct1/4)):
+%   'u'          ct1, ct2, phi1 (the three controls only)
 %   'u+1'        ct1, ct2, phi1, 1
 %   'u+1+M'      'u+1', M(ct1), M(phi1)
 %   'NL+1'       'u+1', g1 = ct1/(1+ct1/4)^3*c1^3, g2 = ct2/(1+ct2/4)^3
@@ -40,6 +41,8 @@ M = Mall(:,end);
 
 W = [ct1; ct2; phi1; ones(size(ct1))];
 switch featureSet
+    case 'u'
+        W = W(1:3,:);
     case 'u+1'
     case 'u+1+M'
         W = [W; Mall(1:2,:)];
