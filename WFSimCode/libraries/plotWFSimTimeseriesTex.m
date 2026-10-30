@@ -3,7 +3,7 @@ function fig = plotWFSimTimeseriesTex(pd, dirFig, fileBase)
 % with the TeX interpreter, the operating mode in the title and the time in
 % s on the x axis (thesis figures). Instead of legends, the title of the
 % first subplot names the signals in their line colors (Farm signals: P_ref, P_WF,
-% P_WF,est (WRC-AIC with the input-only model, pd.P_est), P_greedy, V_inf;
+% P_WF,est (input-only model: MPC prediction pd.P_est_MPC, or pd.P_est), P_greedy, V_inf;
 % Turbine signals: V_r1, V_r2 and their estimates (AIC); the turbine
 % colors also apply to C_T' and yaw), so no data are covered; line styles
 % go into the caption. The data pd are saved per run by
@@ -41,8 +41,15 @@ iSub = cumsum([1, 1, 1, showYaw, 1, showUpdate]); % subplot index of P, V, CT, y
 % Estimates: Vr1, Vr2 for the AIC (Ur model, or input-only power model
 % without wind), farm power for the WRC-AIC with the input-only power model
 isFeat = isfield(pd,'KoopFeat') && pd.KoopFeat > 0 && isfield(pd,'P_est');
-showEstP = isFeat && pd.OptYaw == 1;
-showEst = pd.KoopAIC == 1 || (isFeat && pd.OptYaw ~= 1);
+% Runs with the logged MPC prediction (pd.P_est_MPC, WFSim_demo): farm power
+% predicted by the MPC for the applied inputs in all three cases, the
+% effective wind speeds are not estimated (not used by the controller)
+isMPC = isFeat && isfield(pd,'P_est_MPC') && ~pd.KoopAIC;
+if isMPC
+    pd.P_est = pd.P_est_MPC;
+end
+showEstP = isFeat && (pd.OptYaw == 1 || isMPC);
+showEst = pd.KoopAIC == 1 || (isFeat && pd.OptYaw ~= 1 && ~isMPC);
 % VAF of the shown estimates over the plotted time in the first title line
 vaf = @(y,yh) 100*(1 - var(y - yh)/var(y));
 if showEstP

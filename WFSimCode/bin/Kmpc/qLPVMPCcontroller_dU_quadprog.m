@@ -224,6 +224,7 @@ if sol.k>=1
         aValue_approx_K = mpcest.xK;
         P_est_K    = mpc.Kp.L * mpcest.xinitK + mpc.Kp.S * mpcest.xK;
         Etemp_L_K   = mpc.Pref(sol.k:sol.k+mpcest.Nh-1) - P_est_K;
+        mpc.PestK = P_est_K(1); % farm power (W) predicted for the optimal input of this step
         
         
     end
