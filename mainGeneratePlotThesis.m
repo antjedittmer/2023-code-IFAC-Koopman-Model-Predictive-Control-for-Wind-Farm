@@ -3,8 +3,9 @@
 % (modelCases): 'Ur n=6' with 13 input features incl. moving means
 % (KoopFeatModel3.mat, figure names as before) and 'Ur n=6' with the three
 % controls ct1, ct2, phi1 only (KoopFeatModel7.mat, figure names + '_n6'):
-%   - Open-loop identification: diagnostic plots of Ur1, Ur2 and the farm
-%     power on the three validation sets (plotPowerStatesDiag)
+%   - Open-loop identification: VAF of Ur1, Ur2 and the farm power and
+%     diagnostic plots of the 13-input model with the estimates of the
+%     3-input model as grey dashed lines (plotPowerStatesDiag)
 %   - Closed loop: Baseline AIC, AIC with static yaw and WRC-AIC
 %     (plotWFSimTimeseriesTex)
 % Steps whose results exist are not repeated (open-loop data, Koopman
@@ -71,25 +72,29 @@ wrcModels = {'Ur n=4',   'NL+1+M+x', 2
              'Ur n=6',   'u',        7 % 6 states, 3 inputs
              'Ur n=6',   'NL+1',     8};
 % Cases of the loop: {state set, feature set, suffix of the figure names,
-% case whose estimates are shown as grey lines in the diagnostic plots (0: none)}
-modelCases = {'Ur n=6', 'NL+1+M+x', '',    0
-              'Ur n=6', 'u',        '_n6', 1};
-refNames = {'10 states', '6 states'}; % names of the cases in the diagnostic plots
+% case whose estimates are shown as grey dashed lines in the diagnostic
+% plots (0: none), diagnostic plots (1) or VAF only (0)}
+modelCases = {'Ur n=6', 'NL+1+M+x', '',    2, 1
+              'Ur n=6', 'u',        '_n6', 0, 0};
+% names of the cases in the diagnostic plots (TeX, char(966): varphi, not supported by the TeX interpreter)
+refNames = {['n_', char(966), ' = 10'], ['n_', char(966), ' = 6']};
 tableNames = {'10 states, 13 inputs', '6 states, 3 inputs'}; % names of the cases in the table
 tableOrder = [2 1]; % rows of the table (cases)
 showCase = 2; % only the figures of this case stay open
 idN = {'Vinf8dot0_sowfa_2turb_yaw_noise_step','Vinf8dot0_sowfa_2turb_yaw_ct_levels'};
 valN = {'Vinf8dot0_sowfa_2turb_yaw_ct_levels_val','Vinf8dot0_sowfa_2turb_yaw_steps', ...
     'Vinf8dot0_sowfa_2turb_yaw_steps_Ct_comb'};
-% Data sets of the diagnostic plots: by default the sets of the comparison
-% table (ct_levels, ct_levels_val, steps_Ct_comb); allDiagSets = 1 also
-% plots yaw_noise_step and yaw_steps
+% Data sets of the comparison table (VAF: ct_levels, ct_levels_val,
+% steps_Ct_comb) and of the diagnostic plots (by default ct_levels and
+% ct_levels_val); allDiagSets = 1 plots all identification and validation sets
 allDiagSets = 0;
 idPlot = {'Vinf8dot0_sowfa_2turb_yaw_ct_levels'};
 valPlot = {'Vinf8dot0_sowfa_2turb_yaw_ct_levels_val','Vinf8dot0_sowfa_2turb_yaw_steps_Ct_comb'};
+setsPlot = {'Vinf8dot0_sowfa_2turb_yaw_ct_levels','Vinf8dot0_sowfa_2turb_yaw_ct_levels_val'};
 if allDiagSets
     idPlot = idN;
     valPlot = valN;
+    setsPlot = [idN, valN];
 end
 addpath(fullfile('WFSimCode','bin','Kmpc'));
 
@@ -117,9 +122,10 @@ valSetWRC = 'yaw_ct_levels_val'; % validation set of the same type (runCtLevelsO
 
 VAFall = table();
 resCL = table();
+% Koopman models of the cases (identified if missing)
 KoopFeatCases = zeros(size(modelCases,1),1);
 for idxMC = 1:size(modelCases,1)
-    [stateSetWRC, featureSetWRC, figSuffix, refCase] = modelCases{idxMC,:};
+    [stateSetWRC, featureSetWRC] = modelCases{idxMC,1:2};
     idxM = find(strcmp(wrcModels(:,1),stateSetWRC) & strcmp(wrcModels(:,2),featureSetWRC));
     if isempty(idxM) % new combination: next free number
         wrcModels(end+1,:) = {stateSetWRC, featureSetWRC, max([wrcModels{:,3}]) + 1}; %#ok<SAGROW>
@@ -136,6 +142,10 @@ for idxMC = 1:size(modelCases,1)
         save(fullfile(dirInputsOnly,sprintf('KoopFeatModel%d.mat',KoopFeat)), 'model');
     end
     fprintf('Power model KoopFeatModel%d.mat: states %s, inputs %s\n', KoopFeat, stateSetWRC, featureSetWRC);
+end
+for idxMC = 1:size(modelCases,1)
+    [stateSetWRC, featureSetWRC, figSuffix, refCase, diagPlots] = modelCases{idxMC,:};
+    KoopFeat = KoopFeatCases(idxMC);
 
     % 3. Diagnostic plots of the open-loop identification (input-only model)
     % Per validation set Ur1, Ur2 and the farm power: WFSim vs. model
@@ -148,7 +158,10 @@ for idxMC = 1:size(modelCases,1)
     for var = {'Ur','P'}
         delete(fullfile(dirInputsOnly,sprintf('Diag_KoopFeatModel%d_%s',KoopFeat,var{1}),'*.*'));
     end
-    VAFdiag = plotPowerStatesDiag(sprintf('KoopFeatModel%d.mat',KoopFeat), valPlot, 240, refFile, refName, idPlot);
+    setsPlotMC = setsPlot;
+    if ~diagPlots, setsPlotMC = {}; end
+    VAFdiag = plotPowerStatesDiag(sprintf('KoopFeatModel%d.mat',KoopFeat), valPlot, 240, refFile, refName, idPlot, ...
+        refNames{idxMC}, setsPlotMC);
     VAFdiag.Model = repmat(string(featureSetWRC), height(VAFdiag), 1);
     VAFall = [VAFall; VAFdiag]; %#ok<AGROW>
 
@@ -186,9 +199,12 @@ for idxMC = 1:size(modelCases,1)
     end
 
     % Copy png and eps with the file names of the thesis folder figures/figures_IFAC23
+    % (file name of plotEDMDinputsEffWind from the title: without the states
+    % if a reference model is shown)
+    diagSuffix = sprintf('__n_K__%d__U_r___U_r_2___U_r_3__', KoopmanStates);
+    if refCase > 0, diagSuffix = ''; end
     diagFile = @(type, setName, var) fullfile(dirInputsOnly, sprintf('Diag_KoopFeatModel%d_%s',KoopFeat,var), ...
-        ['Val', type, '_Yaw_', strrep(setName,'yaw_',''), '__n_K', ...
-        sprintf('__%d__U_r___U_r_2___U_r_3__', KoopmanStates)]); % file name of plotEDMDinputsEffWind
+        ['Val', type, '_Yaw_', strrep(setName,'yaw_',''), diagSuffix]);
     % {source, thesis file name}
     figsIFAC = {fullfile(origDirCL,filenamesCL{1}), '04FigTimeSeries0_tex'
                 fullfile(origDirCL,filenamesCL{2}), '05FigTimeSeriesQLMPC_tex'
@@ -198,12 +214,16 @@ for idxMC = 1:size(modelCases,1)
                 diagFile('Val', valSetWRC, 'Ur'), '03aFig_WRC_Val_Vr'
                 diagFile('Val', valSetWRC, 'P'), '03aFig_WRC_Val_P'};
     for idx = 1:size(figsIFAC,1)
+        if ~diagPlots && ~isfile([figsIFAC{idx,1},filetype{1}]) % no diagnostic plots of this case
+            continue
+        end
         for idxT = 1:length(filetype)
             copyfile([figsIFAC{idx,1},filetype{idxT}], fullfile(ifacDir,[figsIFAC{idx,2},figSuffix,filetype{idxT}]));
         end
     end
-    if idxMC ~= showCase
-        close all
+    if idxMC ~= showCase % keep the diagnostic plots (names 'Ur ..', 'P ..') open
+        figs = findobj('Type','figure');
+        close(figs(~startsWith(get(figs,'Name'),{'Ur ','P '})));
     end
 end
 disp(VAFall)

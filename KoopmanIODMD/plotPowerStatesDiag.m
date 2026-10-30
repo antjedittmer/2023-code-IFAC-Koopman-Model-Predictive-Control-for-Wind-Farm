@@ -1,4 +1,4 @@
-function R = plotPowerStatesDiag(modelFile, filenameVal, t0, refModelFile, refName, filenameIdPlot)
+function R = plotPowerStatesDiag(modelFile, filenameVal, t0, refModelFile, refName, filenameIdPlot, estName, setsPlot)
 % plotPowerStatesDiag diagnostic plots of the open-loop identification of
 % the input-only Koopman power model (KoopFeatModel<k>.mat, runKoopStatesCL):
 % per identification set (model.filenameId) and validation set one figure
@@ -15,7 +15,9 @@ function R = plotPowerStatesDiag(modelFile, filenameVal, t0, refModelFile, refNa
 % - refModelFile: optional reference model (KoopFeatModel<k>.mat), whose
 %   estimates are shown as grey lines (simulated in the same way)
 % - refName: name of the reference model in the plots (default 'Ref. model')
-% - filenameIdPlot: identification sets to plot (default: all of model.filenameId)
+% - filenameIdPlot: identification sets (default: all of model.filenameId)
+% - estName: name of the model in the title key (with a reference model)
+% - setsPlot: sets that are plotted (default: all; {}: none, VAF only)
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 dirOut = fullfile(mainDir,'DataInOutWfSim','PowerInputsOnly');
@@ -28,6 +30,8 @@ if nargin < 3, t0 = 240; end
 if nargin < 4, refModelFile = ''; end
 if nargin < 5 || isempty(refName), refName = 'Ref. model'; end
 if nargin < 6, filenameIdPlot = []; end
+if nargin < 7, estName = ''; end
+if nargin < 8, setsPlot = []; end
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % powerFeatures, koopFeatState
 
 tmp = load(fullfile(dirOut,modelFile),'model');
@@ -82,21 +86,33 @@ for idxV = 1:numel(setNames)
 
     vafUr = [vaf(Ur(1,:), UrSim(1,:)), vaf(Ur(2,:), UrSim(2,:))];
     vafP = vaf(P, y);
+    vafRef = [];
+    if ~isempty(refModelFile)
+        vafRef = [vaf(Ur(1,:), UrRef(1,:)), vaf(Ur(2,:), UrRef(2,:)), vaf(P, yRef)];
+    end
     setName = strrep(setNames{idxV},'Vinf8dot0_sowfa_2turb_','');
     setType = {'Val.','Id.'};
     R = [R; table(string(setType{isId(idxV)+1}), string(setName), vafUr(1), vafUr(2), vafP, ...
         'VariableNames', {'Type','Set','VAF_Ur1','VAF_Ur2','VAF_P'})]; %#ok<AGROW>
 
+    if iscell(setsPlot) && ~any(strcmp(setsPlot, setNames{idxV}))
+        continue % VAF only
+    end
     % Diagnostic plots as MainWfSimVinYawPowerOut (plotEDMDinputsEffWind):
     % inputs ct1, ct2, phi1 and WFSim (Real) vs. model (Est.)
     % Title: set, states and (added by plotEDMDinputsEffWind) the VAF
     strVal = sprintf('%s %s, $n_K$ = %d (%s)', setType{isId(idxV)+1}, strrep(setName,'_','-'), ...
         model.n, stateStr(model.stateSet));
+    if ~isempty(refModelFile) % states of both models in the title key (estName, refName)
+        strVal = sprintf('%s %s', setType{isId(idxV)+1}, strrep(setName,'_','-'));
+    end
+    vafRefUr = []; vafRefP = [];
+    if ~isempty(vafRef), vafRefUr = vafRef(1:2); vafRefP = vafRef(3); end
     inp = S.lifted(end-2:end,2:end);
     t = t0 + (1:numel(P)); % time (s), samples from t0 + 1 on (dt = 1 s)
-    fig = plotEDMDinputsEffWind(UrSim, inp, Ur, vafUr, dirUr, 1, model.n, strVal, 1, [], 'U', t, 'tex', UrRef, refName);
+    fig = plotEDMDinputsEffWind(UrSim, inp, Ur, vafUr, dirUr, 1, model.n, strVal, 1, [], 'U', t, 'tex', UrRef, refName, estName, vafRefUr);
     set(fig,'Name',sprintf('Ur %s',setName));
-    fig = plotEDMDinputsEffWind(y, inp, P, vafP, dirP, 0, model.n, strVal, 1, [], 'P', t, 'tex', yRef, refName); % Vin = 0: 3rd input labelled gamma
+    fig = plotEDMDinputsEffWind(y, inp, P, vafP, dirP, 0, model.n, strVal, 1, [], 'P', t, 'tex', yRef, refName, estName, vafRefP); % Vin = 0: 3rd input labelled gamma
     set(fig,'Name',sprintf('P %s',setName));
 end
 disp(R)

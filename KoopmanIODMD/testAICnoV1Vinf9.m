@@ -74,7 +74,7 @@ cl = [0 0 0; lines(nC)];
 iPlot = 1:nC;
 for idxV = 1:2
     subplot(2,1,idxV);
-    plot(k, Ur(idxV,:), 'Color', cl(1,:), 'LineWidth', 1.2); hold on;
+    plot(k, Ur(idxV,:), 'Color', cl(1,:), 'LineWidth', 1); hold on;
     for idx = iPlot
         plot(k, UrEst{idx}(idxV,:), 'Color', cl(idx+1,:), 'LineWidth', 1);
     end
@@ -93,6 +93,7 @@ for idxV = 1:2
 end
 setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
+padYLim(fig); % y axes not completely tight
 printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_Test9'));
 disp(R)
 end

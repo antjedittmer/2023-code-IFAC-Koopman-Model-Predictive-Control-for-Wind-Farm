@@ -145,7 +145,7 @@ if ~isempty(marks) % updates after which the model is shown elsewhere
     for idx = find(marks.Time_s(:)' >= xk(1) & marks.Time_s(:)' <= xk(end))
         % first sample (initial model): shifted to be visible next to the axis
         tMark = max(marks.Time_s(idx), xk(1) + 0.004*(xk(end)-xk(1)));
-        plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2, 'LineStyle', '-');
+        plot(tMark*[1 1], [0 1], 'Color', marks.Color(idx,:), 'LineWidth', 2, 'LineStyle', '-'); % markers, not signals: 2
         % time stamp at the bottom, right of the line (left if TextSide < 0,
         % with more space, the updates before are dense), the magnitude of
         % TextSide scales the distance
@@ -193,6 +193,9 @@ setFigureFont(fig1, fs); % all text 12 pt, bold titles
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
+if strcmpi(interp,'tex') % thesis figures: y axes not completely tight
+    padYLim(fig1);
+end
 printFigure(fig1, fullfile(dirFig,['ValP',strVal1])); % fixed size (setFigureSize)
 end
 

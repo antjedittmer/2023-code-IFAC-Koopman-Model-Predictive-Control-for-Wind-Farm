@@ -159,6 +159,7 @@ ylim(ax(2),[min(vAll)-0.3, max(vAll)+0.3]);
 yl = ylim(axUr); ylim(axUr,yl + [-0.3 0.3]);
 if showUpdate, ylim(ax(end),[-0.1 1.1]); end
 setFigureFont(fig, fs); % all text 12 pt, bold titles
+padYLim(fig); % y axes not completely tight
 
 if nargin > 2
     saveas(fig,fullfile(dirFig,[fileBase,'_Tex']),'fig');
