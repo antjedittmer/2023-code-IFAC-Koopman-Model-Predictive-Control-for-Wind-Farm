@@ -311,6 +311,10 @@ plotDataFile = fullfile(dirFig,[filenamepng,sprintf('_Update%d',sol_update),'_pl
 % Runs with the input-only power model (KoopFeat > 0, KoopAIC = 0): plot data
 % without the logged MPC power prediction (P_est_MPC) are recomputed
 logPestMPC = controller == 2 && KoopFeat > 0 && ~KoopAIC && ~AICnoV1;
+% Start of the evaluation (TE, VAF) and of the plots: 500 s; the thesis
+% WRC-AIC runs (logPestMPC) also the AA from 500 s in the title (the
+% values from sample 240 on: evalClosedLoop in mainGeneratePlotThesis)
+tStartCL = 500;
 rerunPest = false;
 if logPestMPC && exist(plotDataFile,'file') == 2
     tmp = load(plotDataFile,'pd');
@@ -320,6 +324,16 @@ if controller == 2 && exist(plotDataFile,'file') == 2 && ~rerunPest
     disp(['Plot data exist: ',plotDataFile]);
     tmp = load(plotDataFile,'pd');
     tmp.pd = addKoopFeatEstimate(tmp.pd, fileparts(DataKoopman)); % estimates of the input-only model
+    if logPestMPC % evaluation window of the plot: TE and AA from tStartCL
+        kAll = 1:length(tmp.pd.Pref);
+        timeCL = kAll(kAll >= tStartCL & kAll <= 1200);
+        [JQnew, JRnew] = evalClosedLoop(tmp.pd, tStartCL);
+        if ~isequal(tmp.pd.time, timeCL) || tmp.pd.JQ ~= JQnew || tmp.pd.JR ~= JRnew
+            tmp.pd.time = timeCL; tmp.pd.JQ = JQnew; tmp.pd.JR = JRnew;
+            pd = tmp.pd;
+            save(plotDataFile,'pd');
+        end
+    end
     plotWFSimTimeseriesTex(tmp.pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
     sol_array = []; JR = tmp.pd.JR; JQ = tmp.pd.JQ;
     return;
@@ -463,7 +477,7 @@ if controller == 0
 elseif controller == 1
     [JR,JQ] = plotWFSimTimeseries(Wp,sol_array,controller,Power,CT_prime,Phi,V,JR,time,measured,figName,dirFig,mpc);
 else
-    time1 = time(time >= 500 & time <= 1200);
+    time1 = time(time >= tStartCL & time <= 1200);
     if refstairs == 20 % adaptive AIC test case: whole simulation
         time1 = time(time >= 1);
     end
@@ -500,6 +514,10 @@ else
         end
     end
     pd = addKoopFeatEstimate(pd, fileparts(DataKoopman)); % estimates of the input-only model
+    if logPestMPC % AA also from tStartCL (title, as the TE)
+        [JQ, JR] = evalClosedLoop(pd, tStartCL);
+        pd.JQ = JQ; pd.JR = JR;
+    end
     save(plotDataFile,'pd');
     plotWFSimTimeseriesTex(pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
 end

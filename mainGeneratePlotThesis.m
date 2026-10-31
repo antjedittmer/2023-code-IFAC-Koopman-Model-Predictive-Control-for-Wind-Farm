@@ -1,11 +1,14 @@
 % mainGeneratePlotThesis creates the thesis plots of the Koopman MPC
-% without the wind speed V1 for two input-only Koopman power models
-% (modelCases): 'Ur n=6' with 13 input features incl. moving means
-% (KoopFeatModel3.mat, figure names as before) and 'Ur n=6' with the three
-% controls ct1, ct2, phi1 only (KoopFeatModel7.mat, figure names + '_n6'):
+% without the wind speed V1 for three input-only Koopman power models
+% (modelCases): the control-affine model 'Ur n=6' with the nonlinear
+% features of the filtered inputs as states and the three controls ct1,
+% ct2, phi1 as inputs (KoopFeatModel9.mat, figure names as before), 'Ur n=6'
+% with the three controls only (KoopFeatModel7.mat, figure names + '_n6')
+% and 'Ur n=6' with 13 input features incl. moving means (KoopFeatModel3.mat,
+% figure names + '_nl'):
 %   - Open-loop identification: VAF of Ur1, Ur2 and the farm power and
-%     diagnostic plots of the 13-input model with the estimates of the
-%     3-input model as grey dashed lines (plotPowerStatesDiag)
+%     diagnostic plots of the control-affine model with the estimates of
+%     the 3-input model as grey dashed lines (plotPowerStatesDiag)
 %   - Closed loop: Baseline AIC, AIC with static yaw and WRC-AIC
 %     (plotWFSimTimeseriesTex)
 % Steps whose results exist are not repeated (open-loop data, Koopman
@@ -62,6 +65,9 @@ end
 %     states) and three products (13 inputs)
 %   'NL+1': ct1, ct2, phi1, 1 and the two nonlinear power features
 %   'u': the three controls ct1, ct2, phi1 (one output P_WF)
+%   'NL+1+M+x,aff': control-affine model with the features of 'NL+1+M+x'
+%     as functions of the inputs filtered as in the turbine model (three
+%     further filter states) and the three controls as the only inputs
 % Each combination is saved as KoopFeatModel<KoopFeat>.mat ({state set,
 % feature set, KoopFeat}); a missing model is identified
 wrcModels = {'Ur n=4',   'NL+1+M+x', 2
@@ -70,17 +76,19 @@ wrcModels = {'Ur n=4',   'NL+1+M+x', 2
              'Ur n=4+d', 'NL+1+M+x', 5
              'Ur n=6+d', 'NL+1+M+x', 6
              'Ur n=6',   'u',        7 % 6 states, 3 inputs
-             'Ur n=6',   'NL+1',     8};
+             'Ur n=6',   'NL+1',     8
+             'Ur n=6',   'NL+1+M+x,aff', 9}; % 6 + 3 + 4 filter states, 3 inputs (control affine)
 % Cases of the loop: {state set, feature set, suffix of the figure names,
 % case whose estimates are shown as grey dashed lines in the diagnostic
 % plots (0: none), diagnostic plots (1) or VAF only (0)}
-modelCases = {'Ur n=6', 'NL+1+M+x', '',    2, 1
-              'Ur n=6', 'u',        '_n6', 0, 0};
+modelCases = {'Ur n=6', 'NL+1+M+x,aff', '',    2, 1
+              'Ur n=6', 'u',            '_n6', 0, 0
+              'Ur n=6', 'NL+1+M+x',     '_nl', 0, 0};
 % names of the cases in the diagnostic plots (TeX, char(966): varphi, not supported by the TeX interpreter)
-refNames = {['n_', char(966), ' = 10'], ['n_', char(966), ' = 6']};
-tableNames = {'10 states, 13 inputs', '6 states, 3 inputs'}; % names of the cases in the table
-tableOrder = [2 1]; % rows of the table (cases)
-showCase = 2; % only the figures of this case stay open
+refNames = {['n_', char(966), ' = 13'], ['n_', char(966), ' = 6'], ['n_', char(966), ' = 10']};
+tableNames = {'13 states, 3 inputs (control affine)', '6 states, 3 inputs', '10 states, 13 inputs'}; % names of the cases in the table
+tableOrder = [2 3 1]; % rows of the table (cases)
+showCase = 1; % only the figures of this case stay open
 idN = {'Vinf8dot0_sowfa_2turb_yaw_noise_step','Vinf8dot0_sowfa_2turb_yaw_ct_levels'};
 valN = {'Vinf8dot0_sowfa_2turb_yaw_ct_levels_val','Vinf8dot0_sowfa_2turb_yaw_steps', ...
     'Vinf8dot0_sowfa_2turb_yaw_steps_Ct_comb'};
@@ -173,14 +181,23 @@ for idxMC = 1:size(modelCases,1)
         [~,JR,JQ] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
             controller,ControlSetStr,Vinf,vinfStr,kTimestep,sol_update,cases{idxC,2},cases{idxC,3},Rvec,RU,cases{idxC,4},0,[],UrFromPower);
         fig = gcf; fig.Name = [cases{idxC,1},figSuffix];
-        resCL = [resCL; table(string(featureSetWRC), string(cases{idxC,1}), JQ*1e3, JR, ...
-            'VariableNames', {'Model','Case','TE_kW','AA'})]; %#ok<AGROW>
+        resCL = [resCL; table(string(featureSetWRC), string(cases{idxC,1}), JQ*1e3, JR, NaN, NaN, ...
+            'VariableNames', {'Model','Case','TE_kW','AA','TE240_kW','AA240'})]; %#ok<AGROW>
     end
 
     % Copy png and eps in one folder (figure names + figSuffix)
     filenamesCL = {sprintf('R1dot0e_neg06_KoopAIC0_OptYaw0_KoopFeat%d%s_Update0_Tex',KoopFeat,urStr), ...
         sprintf('R1dot0e_neg06_KoopAIC0_OptYaw2_KoopFeat%d%s_Update0_Tex',KoopFeat,urStr), ...
         sprintf('R1dot0e_neg06_KoopAIC0_KoopFeat%d%s_Update0_Tex',KoopFeat,urStr)};
+    % TE and AA from sample 240 on (after the start-up of the wake); the
+    % plots and their titles: from 500 s (WFSim_demo, as JQ, JR above)
+    for idx = 1:length(filenamesCL)
+        tmp = load(fullfile(origDirCL,[strrep(filenamesCL{idx},'_Tex',''),'_plotData.mat']),'pd');
+        [TE240, AA240] = evalClosedLoop(tmp.pd, 240);
+        iRow = height(resCL) - length(filenamesCL) + idx; % rows of this model, order of cases
+        resCL.TE240_kW(iRow) = TE240*1e3;
+        resCL.AA240(iRow) = AA240;
+    end
     for idx = 1:length(filenamesCL)
         for idxT = 1:length(filetype)
             copyfile(fullfile(origDirCL,[filenamesCL{idx},filetype{idxT}]), ...

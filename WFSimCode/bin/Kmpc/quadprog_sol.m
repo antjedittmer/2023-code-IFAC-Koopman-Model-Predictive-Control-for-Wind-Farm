@@ -40,12 +40,18 @@ if isEst == 1
     AcK0d = [AcK0;- diagDiff; diagDiff];
     bc0K_ = [- repmat([mpc.Ulim_lower(1:2); 0], Nh,1); ...
         repmat([mpc.Ulim_upper(1:2); 22], Nh,1)];
+    yawRate = 1; % rate limit of the yaw decision (deg per step)
     if isfield(mpc,'yawFix') && ~isempty(mpc.yawFix) % fixed yaw trajectory
-        bc0K_(3:nuK:Nh*nuK) = -mpc.yawFix;
-        bc0K_(Nh*nuK+3:nuK:end) = mpc.yawFix;
+        yawFixDec = mpc.yawFix;
+        if isfield(mpc,'yawFixU') && ~isempty(mpc.yawFixU) % control-affine model: controls before the filter
+            yawFixDec = mpc.yawFixU;
+            yawRate = 1e3; % yaw fixed by the bounds; its steps before the filter exceed 1 deg
+        end
+        bc0K_(3:nuK:Nh*nuK) = -yawFixDec;
+        bc0K_(Nh*nuK+3:nuK:end) = yawFixDec;
     end
     bcK = bc0K_ - AcK0 * mpcK.utemp;
-    bcKd = [bcK; [- repmat([-2;-2;-1], Nh-1,1); repmat([2;2;1], Nh-1,1)]];
+    bcKd = [bcK; [- repmat([-2;-2;-yawRate], Nh-1,1); repmat([2;2;yawRate], Nh-1,1)]];
     
     % myoptions = optimset('Display','iter');
     % [uvalK ,fvalK] = quadprog(mpcK.H,mpcK.g,AcK0, bcK,[],[],[],[],[],myoptions);

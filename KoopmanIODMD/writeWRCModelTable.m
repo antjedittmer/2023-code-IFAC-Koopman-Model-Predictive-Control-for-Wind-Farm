@@ -6,7 +6,8 @@ function writeWRCModelTable(VAFall, resCL, featureSets, modelNames, maxEig, file
 %
 % Inputs
 % - VAFall: table of plotPowerStatesDiag with column Model (feature set)
-% - resCL: closed loop results (columns Model, Case, TE_kW, AA)
+% - resCL: closed loop results (columns Model, Case, TE_kW, AA from 500 s,
+%   optional TE240_kW, AA240 from sample 240 on, in brackets)
 % - featureSets: feature sets of the rows (cell, order of the rows)
 % - modelNames: names of the rows (cell)
 % - maxEig: max|eig(A)| per row
@@ -23,7 +24,8 @@ fprintf(fid, '%s\n', '    \centering');
 fprintf(fid, '%s\n', ['    \caption[Input-only Koopman power models of the WRC-AIC]{\label{tab:WRCModelComparison} ', ...
     'Input-only Koopman power models of the WRC-AIC: VAF of the effective wind speeds $V_{r1}$, $V_{r2}$ and ', ...
     'the wind farm power $P_\text{WF}$ (simulated from the measured initial state, VAF values below 0 are set to 0), ', ...
-    'largest eigenvalue magnitude of $A$ and closed-loop tracking error TE and actuator activity AA.}']);
+    'largest eigenvalue magnitude of $A$ and closed-loop tracking error TE and actuator activity AA ', ...
+    'from 500\,s on (as in Figures~\ref{fig:CLbaseline} to~\ref{fig:CLMPC2}) and, in brackets, from sample 240 on.}']);
 fprintf(fid, '%s\n', '    \resizebox{\textwidth}{!}{%');
 fprintf(fid, '    \\begin{tabular}{@{}l*{%d}{c}@{}}\n', numel(sets) + 1 + numel(cases));
 fprintf(fid, '%s\n', '        \toprule');
@@ -50,6 +52,9 @@ for idxR = 1:numel(featureSets)
     for idx = 1:numel(cases)
         r = resCL(resCL.Model == featureSets{idxR} & resCL.Case == cases(idx), :);
         row = sprintf('%s & %.1f / %.1f', row, r.TE_kW, r.AA*1e3);
+        if ismember('TE240_kW', r.Properties.VariableNames) && ~isnan(r.TE240_kW)
+            row = sprintf('%s (%.1f / %.1f)', row, r.TE240_kW, r.AA240*1e3);
+        end
     end
     fprintf(fid, '        %s \\\\\n', row);
 end
