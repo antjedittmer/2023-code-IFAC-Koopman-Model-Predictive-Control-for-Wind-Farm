@@ -59,9 +59,9 @@ omega = logspace(-5, log10(pi), 600);
 sv = @(A,B) sigma(ss(A, B, eye(2,size(A,1)), zeros(2,size(B,2)), 1), omega);
 
 fig = figure;
-loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', 2); hold on; % below the updated models
+loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', 2); hold on; % below the updated models, 2: visible next to them
 ls = {'-','-.','--',':'};
-lw = 1.2*ones(1,4);
+lw = ones(1,4);
 names = cell(1,numel(models));
 for idx = 1:numel(models)
     loglog(omega, sv(models(idx).A, models(idx).B)', 'Color', cl(idx,:), ...
@@ -77,6 +77,7 @@ title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m
     'Interpreter', 'tex');
 setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
+padYLim(fig); % y axis not completely tight
 printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
 disp(sel)
 end

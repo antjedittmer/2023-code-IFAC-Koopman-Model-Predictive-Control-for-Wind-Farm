@@ -11,11 +11,21 @@ function P = predictPowerFeat(model, Ur, Mprev, U)
 % - Ur: initial state (koopFeatState) or the current rotor effective wind
 %   speeds [Ur1; Ur2] (lifted with the first n observables of K_psi)
 % - Mprev: moving means of the features before the first step
-% - U: inputs [ct1; ct2; phi1] (3 x Nh)
+% - U: inputs [ct1; ct2; phi1] (3 x Nh); control-affine model (feature set
+%   '<set>,aff'): the controls before the filter of the turbine model (the
+%   decision variables of the MPC), Mprev = [moving means; filtered inputs]
 
 x = Ur(:);
 if numel(x) ~= model.n
     x = liftUr(Ur, model.n);
+end
+if endsWith(model.featureSet, ',aff') % applied (filtered) inputs of the controls U
+    tauU = inputFilterCoeff;
+    sPrev = Mprev(5:7);
+    for k = 1:size(U,2)
+        U(:,k) = (1 - tauU)*sPrev + tauU*U(:,k);
+        sPrev = U(:,k);
+    end
 end
 W = powerFeatures(U, model.featureSet, model.tau, Mprev);
 Nh = size(U,2);

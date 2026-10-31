@@ -122,6 +122,7 @@ if sol.k>=1
     % power of both turbines with the wind speed^3, so its maximum (18 deg)
     % does not depend on the wind speed and is computed once without V1
     mpc.yawFix = [];
+    mpc.yawFixU = [];
     if ~mpc.KoopAIC && mpc.OptYaw ~= 1
         yawTarget = 0;
         if mpc.OptYaw == 2 && Wp.turbine.N == 2 && mpc.Pref(sol.k) > mpc.Pgreedy
@@ -137,6 +138,11 @@ if sol.k>=1
             yawNext = tauYaw*yawPrev + (1-tauYaw)*yawTarget;
             mpc.yawFix(idxH) = yawPrev + min(max(yawNext - yawPrev,-1),1);
             yawPrev = mpc.yawFix(idxH);
+        end
+        % Control-affine power model: the decision variables are the
+        % controls before the filter, i.e. the yaw that results in yawFix
+        if mpc.KoopFeat && endsWith(K.feat.featureSet, ',aff')
+            mpc.yawFixU = (mpc.yawFix - tauYaw*[sol.turbine.Phi(1); mpc.yawFix(1:end-1)])/(1 - tauYaw);
         end
     end
     
@@ -224,6 +230,7 @@ if sol.k>=1
         aValue_approx_K = mpcest.xK;
         P_est_K    = mpc.Kp.L * mpcest.xinitK + mpc.Kp.S * mpcest.xK;
         Etemp_L_K   = mpc.Pref(sol.k:sol.k+mpcest.Nh-1) - P_est_K;
+        mpc.PestK = P_est_K(1); % farm power (W) predicted for the optimal input of this step
         
         
     end

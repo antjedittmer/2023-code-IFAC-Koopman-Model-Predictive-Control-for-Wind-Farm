@@ -1,10 +1,15 @@
-function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,displayOff,Vinf,strOut,tVec,interp)
+function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,displayOff,Vinf,strOut,tVec,interp,ysimRef,refName,estName,FITjeRef)
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
 % Optional interp: 'latex' (default) or 'tex' (labels converted: no $, units
 % in (), no legends: the first title names the measured (WT1, WT2) and the
 % estimated signals in their colors)
+% Optional ysimRef: estimates of a reference model (same size as ysim_val),
+% plotted as grey dashed lines; refName: its name in the legend/title key
+% Optional estName, FITjeRef (tex): names of the model and the reference
+% model and the VAF of the reference in the title key ('Estimate P_T:' or
+% 'Estimate V_r:' with the names and the VAF in the line colors)
 
 if nargin < 6
     Vin = 0;
@@ -37,6 +42,26 @@ if nargin < 13
     interp = 'latex';
 end
 
+if nargin < 14
+    ysimRef = [];
+end
+
+if nargin < 15 || isempty(refName)
+    refName = 'Ref.';
+end
+
+if nargin < 16
+    estName = '';
+end
+
+if nargin < 17
+    FITjeRef = [];
+end
+
+if ~isempty(ysimRef) && size(ysimRef,2) < size(ysimRef,1)
+    ysimRef = ysimRef';
+end
+
 if nx > 0
     strK =  sprintf(', $n_K$ = %d', nx);
 else
@@ -64,11 +89,14 @@ end
 setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = lines;
 lw = 1;
+greyRef = [0.6 0.6 0.6]; % reference model estimates (dashed)
+lwRef = 1.7; % thicker than the estimate, so that the grey line stays visible
 fs = 12;
 kplot = 60: length(ysim_val);
 if isempty(tVec)
     xk = 1:length(kplot);
-else
+else % time axis: the data start after the start-up (t0), show all (as the VAF)
+    kplot = 1:length(ysim_val);
     xk = tVec(kplot);
 end
 
@@ -141,6 +169,9 @@ for idx = 1: noSubOut
     nexttile(tl,noSub - (noSubOut-idx))
     plot(xk,Deterministic_val(idx,kplot),'LineWidth',lw,'Color', cl(idxT,:)); %1
     hold on;
+    if ~isempty(ysimRef) % reference model (grey) below the estimate
+        plot(xk,ysimRef(idx,kplot),'Color',greyRef,'LineWidth',lwRef,'LineStyle','--')
+    end
     plot(xk,ysim_val(idx,kplot),'Color',[0,0,0],'LineWidth',lw,'LineStyle','--') %3
     grid on; axis tight;
     pos = axis; axis([pos(1:3), pos(4)+0.3]);
@@ -149,7 +180,11 @@ for idx = 1: noSubOut
     sigName = 'Wind';
     if noSubOut == 1, sigName = 'Power'; end
     ylabel([sigName,' $',strOut,strAdd{idxT}],'interpreter','latex')
-    legend({'Real','Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
+    if isempty(ysimRef)
+        legend({'Real','Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
+    else
+        legend({'Real',refName,'Est.'},'Location','northwest','interpreter','latex','fontsize',fs,'orientation','horizontal')
+    end
     %legend('boxoff')
     set(gca,'fontsize', fs)
     
@@ -167,17 +202,25 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     set(axs,'TickLabelInterpreter','tex');
     axTop = axs(end); % first subplot
     if noSubOut == 1 % estimated output(s), black dashed
-        estNames = {[strOut,'_{T,est}']};
+        estSig = [strOut,'_T'];
     else
-        estNames = {'V_{r1,est}','V_{r2,est}'};
+        estSig = 'V_r';
     end
     measNames = {'WT1','WT2'}; measColors = [cl(1,:); cl(2,:)];
     if Vin && ~isempty(Vinf) % free stream wind speed (black) in the wind subplot
         measNames{end+1} = 'V_\infty'; measColors(end+1,:) = [0 0 0];
     end
-    axTop.Title.String = {axTop.Title.String, ...
-        ['Measured sig.: ', colorKey(measNames, measColors), ...
-        '; Estimated sig.: ', colorKey(estNames, zeros(numel(estNames),3))]};
+    strMeas = ['Measured sig.: ', colorKey(measNames, measColors)];
+    if isempty(ysimRef)
+        axTop.Title.String = {axTop.Title.String, ...
+            [strMeas, '; ', colorKey({['Estimate ',estSig]}, [0 0 0])]};
+    else % model (black) and reference model (grey) with their VAF
+        vafStr = @(v) ['(VAF ', strjoin(arrayfun(@(x) sprintf('%d',round(x)), v, 'UniformOutput', false), '/'), ')'];
+        estKey = {strtrim([estName,' ',vafStr(FITje_val)]), refName};
+        if ~isempty(FITjeRef), estKey{2} = [refName,' ',vafStr(FITjeRef)]; end
+        axTop.Title.String = {[latex2tex(strVal), ': ', strMeas], ...
+            ['Estimate ', estSig, ': ', colorKey(estKey, [0 0 0; greyRef])]};
+    end
 end
 setFigureFont(fig1, fs); % all text 12 pt, bold titles
 for ax = findall(fig1,'Type','axes')' % time in s without x10^4 (long identification sets): no extra row
@@ -186,6 +229,9 @@ end
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
+if strcmpi(interp,'tex') % thesis figures: y axes not completely tight
+    padYLim(fig1);
+end
 printFigure(fig1, fullfile(dirFig,['Val',strVal1])); % fixed size (setFigureSize)
 end
 
