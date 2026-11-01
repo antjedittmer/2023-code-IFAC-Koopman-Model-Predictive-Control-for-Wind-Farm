@@ -74,6 +74,10 @@ for idxV = 1:numel(setNames)
         [X(:,k), urS] = koopFeatState(model, S.lifted(1:2,k), urS);
     end
     W = powerFeatures(S.lifted(end-2:end,:), model.featureSet, model.tau);
+    if endsWith(model.featureSet, ',lin') % linear model: feature states, the controls as inputs
+        [F, W] = featStatesLin(W);
+        X = [X; F];
+    end
     W = W(:,2:end); X = X(:,2:end);
     P = S.P(2:end)/1e6;
     Ur = S.lifted(1:2,2:end);
@@ -127,6 +131,10 @@ for k = 1:size(S.lifted,2)
     [X(:,k), urS] = koopFeatState(model, S.lifted(1:2,k), urS);
 end
 W = powerFeatures(S.lifted(end-2:end,:), model.featureSet, model.tau);
+if endsWith(model.featureSet, ',lin') % linear model: feature states, the controls as inputs
+    [F, W] = featStatesLin(W);
+    X = [X; F];
+end
 [y, ~, xSim] = lsim(ss(model.A, model.B, model.C, model.D, 1), W(:,2:end)', [], X(:,2));
 y = y'; UrSim = xSim(:,1:2)';
 end

@@ -1,14 +1,15 @@
 % mainGeneratePlotThesis creates the thesis plots of the Koopman MPC
-% without the wind speed V1 for three input-only Koopman power models
-% (modelCases): the control-affine model 'Ur n=6' with the nonlinear
-% features of the filtered inputs as states and the three controls ct1,
-% ct2, phi1 as inputs (KoopFeatModel9.mat, figure names as before), 'Ur n=6'
-% with the three controls only (KoopFeatModel7.mat, figure names + '_n6')
-% and 'Ur n=6' with 13 input features incl. moving means (KoopFeatModel3.mat,
-% figure names + '_nl'):
+% without the wind speed V1 for two input-only Koopman power models
+% (modelCases, mainModel): the linear model with 21 states (lifted Ur, the
+% filtered inputs, the nonlinear features and moving means of the filtered
+% inputs as states, an offset state) and the three controls ct1, ct2, phi1
+% as inputs (KoopFeatModel10.mat, buildLinearPowerModel, figure names as
+% before), and the model with the six lifted Ur and the three controls only
+% (KoopFeatModel7.mat, figure names + '_n6'); fallback mainModel = 'aff':
+% the control-affine model with 13 states (KoopFeatModel9.mat):
 %   - Open-loop identification: VAF of Ur1, Ur2 and the farm power and
-%     diagnostic plots of the control-affine model with the estimates of
-%     the 3-input model as grey dashed lines (plotPowerStatesDiag)
+%     diagnostic plots of the main model with the estimates of the 3-input
+%     model as grey dashed lines (plotPowerStatesDiag)
 %   - Closed loop: Baseline AIC, AIC with static yaw and WRC-AIC
 %     (plotWFSimTimeseriesTex)
 % Steps whose results exist are not repeated (open-loop data, Koopman
@@ -77,17 +78,29 @@ wrcModels = {'Ur n=4',   'NL+1+M+x', 2
              'Ur n=6+d', 'NL+1+M+x', 6
              'Ur n=6',   'u',        7 % 6 states, 3 inputs
              'Ur n=6',   'NL+1',     8
-             'Ur n=6',   'NL+1+M+x,aff', 9}; % 6 + 3 + 4 filter states, 3 inputs (control affine)
+             'Ur n=6',   'NL+1+M+x,aff', 9 % 6 + 3 + 4 filter states, 3 inputs (control affine)
+             'Ur n=6',   'NL+1+M+x,lin', 10}; % 21 states, 3 inputs (linear, buildLinearPowerModel from 9)
 % Cases of the loop: {state set, feature set, suffix of the figure names,
 % case whose estimates are shown as grey dashed lines in the diagnostic
 % plots (0: none), diagnostic plots (1) or VAF only (0)}
-modelCases = {'Ur n=6', 'NL+1+M+x,aff', '',    2, 1
-              'Ur n=6', 'u',            '_n6', 0, 0
-              'Ur n=6', 'NL+1+M+x',     '_nl', 0, 0};
+% Main model of the thesis figures: 'lin' (default): linear model with 21
+% states, no linearization in the MPC; 'aff': control-affine model with 13
+% states (fallback, linearized in the MPC by finite differences)
+mainModel = 'lin';
+switch mainModel
+    case 'lin'
+        modelCases = {'Ur n=6', 'NL+1+M+x,lin', '',    2, 1
+                      'Ur n=6', 'u',            '_n6', 0, 0};
+        mainName = {['n_', char(966), ' = 21'], '21 states, 3 inputs (linear)'};
+    case 'aff'
+        modelCases = {'Ur n=6', 'NL+1+M+x,aff', '',    2, 1
+                      'Ur n=6', 'u',            '_n6', 0, 0};
+        mainName = {['n_', char(966), ' = 13'], '13 states, 3 inputs (control affine)'};
+end
 % names of the cases in the diagnostic plots (TeX, char(966): varphi, not supported by the TeX interpreter)
-refNames = {['n_', char(966), ' = 13'], ['n_', char(966), ' = 6'], ['n_', char(966), ' = 10']};
-tableNames = {'13 states, 3 inputs (control affine)', '6 states, 3 inputs', '10 states, 13 inputs'}; % names of the cases in the table
-tableOrder = [2 3 1]; % rows of the table (cases)
+refNames = {mainName{1}, ['n_', char(966), ' = 6']};
+tableNames = {mainName{2}, '6 states, 3 inputs'}; % names of the cases in the table
+tableOrder = [2 1]; % rows of the table (cases)
 showCase = 1; % only the figures of this case stay open
 idN = {'Vinf8dot0_sowfa_2turb_yaw_noise_step','Vinf8dot0_sowfa_2turb_yaw_ct_levels'};
 valN = {'Vinf8dot0_sowfa_2turb_yaw_ct_levels_val','Vinf8dot0_sowfa_2turb_yaw_steps', ...
@@ -142,11 +155,26 @@ for idxMC = 1:size(modelCases,1)
     KoopFeat = wrcModels{idxM,3};
     KoopFeatCases(idxMC) = KoopFeat;
     if ~isfile(fullfile(dirInputsOnly,sprintf('KoopFeatModel%d.mat',KoopFeat)))
-        [~, Mdl] = testPowerStates(idN, valN, {featureSetWRC}, 240, 100, {stateSetWRC});
-        close all
-        model = Mdl(1);
-        model.t0 = 240;
-        model.filenameId = idN;
+        if endsWith(featureSetWRC, ',lin') % linear model from the control-affine model
+            idxAff = strcmp(wrcModels(:,1),stateSetWRC) & strcmp(wrcModels(:,2),strrep(featureSetWRC,',lin',',aff'));
+            affFile = fullfile(dirInputsOnly,sprintf('KoopFeatModel%d.mat',wrcModels{idxAff,3}));
+            if ~isfile(affFile) % control-affine model first
+                [~, Mdl] = testPowerStates(idN, valN, {strrep(featureSetWRC,',lin',',aff')}, 240, 100, {stateSetWRC});
+                close all
+                model = Mdl(1);
+                model.t0 = 240;
+                model.filenameId = idN;
+                save(affFile, 'model');
+            end
+            tmp = load(affFile,'model');
+            model = buildLinearPowerModel(tmp.model, idN, valN, 240);
+        else
+            [~, Mdl] = testPowerStates(idN, valN, {featureSetWRC}, 240, 100, {stateSetWRC});
+            close all
+            model = Mdl(1);
+            model.t0 = 240;
+            model.filenameId = idN;
+        end
         save(fullfile(dirInputsOnly,sprintf('KoopFeatModel%d.mat',KoopFeat)), 'model');
     end
     fprintf('Power model KoopFeatModel%d.mat: states %s, inputs %s\n', KoopFeat, stateSetWRC, featureSetWRC);
@@ -250,7 +278,7 @@ disp(resCL)
 maxEig = zeros(numel(tableOrder),1);
 for idx = 1:numel(tableOrder)
     tmp = load(fullfile(dirInputsOnly,sprintf('KoopFeatModel%d.mat',KoopFeatCases(tableOrder(idx)))),'model');
-    maxEig(idx) = max(abs(eig(tmp.model.A)));
+    maxEig(idx) = tmp.model.maxAbsEig; % linear model: without the offset state (eigenvalue 1)
 end
 writeWRCModelTable(VAFall, resCL, modelCases(tableOrder,2), tableNames(tableOrder), maxEig, ...
     fullfile(ifacDir,'tab_WRC_ModelComparison.tex'));
