@@ -141,7 +141,7 @@ if sol.k>=1
         end
         % Control-affine power model: the decision variables are the
         % controls before the filter, i.e. the yaw that results in yawFix
-        if mpc.KoopFeat && endsWith(K.feat.featureSet, ',aff')
+        if mpc.KoopFeat && endsWith(K.feat.featureSet, {',aff', ',lin'})
             mpc.yawFixU = (mpc.yawFix - tauYaw*[sol.turbine.Phi(1); mpc.yawFix(1:end-1)])/(1 - tauYaw);
         end
     end

@@ -24,11 +24,18 @@ if nargin < 4
 end
 K = size(Vr,2);
 W = powerFeatures(U, model.featureSet, model.tau); % steady state before k = 1
+isLin = endsWith(model.featureSet, ',lin');
+if isLin % linear model: feature states (exact at k-n) and the controls as inputs
+    [F, W] = featStatesLin(W);
+end
 urS = struct('M', Vr(:,1), 'UrPrev', Vr(:,1), 'k', 1);
 VrEst = NaN(2,K);
 PEst = NaN(1,K);
 for k = 1:K-nAhead
     [x, urS] = koopFeatState(model, Vr(:,k), urS);
+    if isLin
+        x = [x; F(:,k)]; %#ok<AGROW>
+    end
     for j = 0:nAhead-1
         x = model.A*x + model.B*W(:,k+j);
     end

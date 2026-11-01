@@ -39,8 +39,8 @@ function [W, M] = powerFeatures(inp, featureSet, tau, Mprev)
 if nargin < 4
     Mprev = [];
 end
-if endsWith(featureSet, ',aff')
-    [W, M] = affineFeatures(inp, extractBefore(featureSet, ',aff'), tau, Mprev);
+if endsWith(featureSet, {',aff', ',lin'}) % ',lin': linear model, same features (featStatesLin)
+    [W, M] = affineFeatures(inp, featureSet(1:end-4), tau, Mprev);
     return
 end
 h = meanSignals(inp); % signals of the moving means
