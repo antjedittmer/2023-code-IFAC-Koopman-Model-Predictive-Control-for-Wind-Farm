@@ -1,5 +1,5 @@
 function [sol_array,JR,JQ,fileName] = WFSim_demo(R,refstairs,measured,KoopmanStates,PolyLiftingFunction,...
-    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad,UrFromPower)
+    controller,ControlSetStr,Vinf, vinfStr,kTimestep,sol_update,OptYaw,KoopAIC,Rvec,RU,KoopFeat,AICnoV1,ad,UrFromPower,rerunPest)
 % WFSim_demo is the WIND FARM SIMULATOR (WFSIM) by S. Boersma and B. Doekemeijer
 % from https://github.com/TUDelft-DataDrivenControl/WFSim
 %
@@ -82,8 +82,7 @@ if nargin <10
     end
 end
 
-if nargin < 11
-    sol_update = 0;
+if nargin < 11,sol_update = 0;
 end
 
 if nargin < 12
@@ -119,6 +118,10 @@ end
 
 if nargin < 19 || isempty(UrFromPower)
     UrFromPower = 1;
+end
+
+if nargin < 20 
+    rerunPest = false; %TodDo change this again
 end
 UrFromPower = UrFromPower && controller == 2; % only used by the KMPC
 
@@ -315,7 +318,7 @@ logPestMPC = controller == 2 && KoopFeat > 0 && ~KoopAIC && ~AICnoV1;
 % WRC-AIC runs (logPestMPC) also the AA from 500 s in the title (the
 % values from sample 240 on: evalClosedLoop in mainGeneratePlotThesis)
 tStartCL = 500;
-rerunPest = false;
+
 if logPestMPC && exist(plotDataFile,'file') == 2
     tmp = load(plotDataFile,'pd');
     rerunPest = ~isfield(tmp.pd,'P_est_MPC');
@@ -520,4 +523,4 @@ else
     end
     save(plotDataFile,'pd');
     plotWFSimTimeseriesTex(pd, dirFig, [filenamepng,sprintf('_Update%d',sol_update)]);
-end
+end
