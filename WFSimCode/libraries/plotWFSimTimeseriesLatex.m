@@ -72,7 +72,7 @@ subplot(5,1,1)
 if controller == 0
     stairs(time,sum(Power(:,time))/1e6,'--','linewidth',lw+0.2,'color',cl(4,:,:));
     axis tight; grid on;
-    legend('$P_T$', 'Orientation','horizontal','interpreter','latex',...
+    legend('$P_{WF}$', 'Orientation','horizontal','interpreter','latex',...
         'Fontsize',fsL)
 else
     stairs(time,mpc.Pref(time)/1e6,'k','linewidth',lw);
@@ -81,11 +81,11 @@ else
     
     if ~noGreedy
     stairs(time,P_greedy(time)/1e6,':','linewidth',lw+0.2,'color',cl(5,:,:));
-    legend('$P_{ref}$','$P_T$','$P_{greedy}$', 'Orientation','horizontal','interpreter','latex',...
+    legend('$P_{ref}$','$P_{WF}$','$P_{greedy}$', 'Orientation','horizontal','interpreter','latex',...
         'Fontsize',fsL,'location','South')
     
     else
-        legend('$P_{ref}$','$P_T$', 'Orientation','horizontal','interpreter','latex',...
+        legend('$P_{ref}$','$P_{WF}$', 'Orientation','horizontal','interpreter','latex',...
         'Fontsize',fsL,'Location','NorthWest')
     end
     axis tight;
@@ -227,4 +227,4 @@ filenamepng = [filenamepng,sprintf('_Update%d', sol_array(1).update)];
 end
 
 saveas(gcf,fullfile(dirFig,filenamepng), 'fig')
-printFigure(gcf, fullfile(dirFig,filenamepng)); % fixed size (setFigureSize)
+printFigure(gcf, fullfile(dirFig,filenamepng)); % fixed size (setFigureSize)

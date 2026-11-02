@@ -8,7 +8,7 @@ function fig1 = plotEDMDinputsEffWind(ysim_val,Inputs_val,Deterministic_val,FITj
 % Optional ysimRef: estimates of a reference model (same size as ysim_val),
 % plotted as grey dashed lines; refName: its name in the legend/title key
 % Optional estName, FITjeRef (tex): names of the model and the reference
-% model and the VAF of the reference in the title key ('Estimate P_T:' or
+% model and the VAF of the reference in the title key ('Estimate P_{WF}:' or
 % 'Estimate V_r:' with the names and the VAF in the line colors)
 
 if nargin < 6
@@ -245,7 +245,7 @@ str = strrep(str,'\inf}','\infty}');
 str = regexprep(str,'\[([^\]]*)\]','($1)');
 str = strrep(str,'(deg)',['(',char(176),')']); % degree sign as in the qLMPC plots
 str = regexprep(str,'\<Ur(\d)','V_{r$1}'); % VAF Ur1 -> V_{r1}
-str = regexprep(str,'VAF PT:','VAF P_T:'); % farm power as in the y label
+str = regexprep(str,'VAF PWF:','VAF P_{WF}:'); % farm power as in the y label
 str = regexprep(str,', r(\d):',', V_{r$1}:'); % VAF ..., r2 -> V_{r2}
 str = regexprep(str,'\<U(_?\{?r)','V$1'); % effective wind speed V_r as in the thesis
 end
