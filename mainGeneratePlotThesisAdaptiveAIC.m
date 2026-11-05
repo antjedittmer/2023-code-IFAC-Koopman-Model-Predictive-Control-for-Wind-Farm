@@ -49,7 +49,10 @@ if isempty(dir(fullfile(mainDir,'DataT2OLWFSim','Vinf7dot0To9dot0_OL_Ct','*sowfa
 end
 
 %% 2. Koopman effective wind speed model without V1 (inputs CT1, CT2)
-if ~isfile(fullfile(mainDir,'DataInOutWfSim','AdaptiveAICdbs','KoopAICnoV1.mat'))
+loadData_Id_Vinf7to9 = 1;
+loadData_Id_Vinf9 = 1;
+if loadData_Id_Vinf7to9 && ...
+        ~isfile(fullfile(mainDir,'DataInOutWfSim','AdaptiveAICdbs','KoopAICnoV1.mat')) 
     identifyAICnoV1();
 end
 if ~isfile(fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC','KoopAICnoV1_Vinf9.mat'))
@@ -61,6 +64,8 @@ end
 % cd KoopmanIODMD
 % models at 240, 5100, 6000, 8000 s (aicNoV1ModelTimes), marked in color in
 % the adaptive validation plot
+% ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1);
+
 [~, sigmaSel] = plotAICnoV1Sigma();
 VAFol = validateAICnoV1();
 test9 = testAICnoV1Vinf9();

@@ -159,7 +159,7 @@ if noSubIn > 2
 end
 
 if noSubOut == 1
-    strAdd = {'_T$ [MW]'};
+    strAdd = {'_{WF}$ [MW]'};
 else
     strAdd = {'_{r1}$ [m/s]','_{r2}$ [m/s]'};
 end
@@ -202,7 +202,7 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     set(axs,'TickLabelInterpreter','tex');
     axTop = axs(end); % first subplot
     if noSubOut == 1 % estimated output(s), black dashed
-        estSig = [strOut,'_T'];
+        estSig = [strOut,'_{WF}'];
     else
         estSig = 'V_r';
     end
