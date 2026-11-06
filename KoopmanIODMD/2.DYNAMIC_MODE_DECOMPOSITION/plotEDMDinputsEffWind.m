@@ -232,6 +232,9 @@ strVal1 = matlab.lang.makeValidName(strVal);
 if strcmpi(interp,'tex') % thesis figures: y axes not completely tight
     padYLim(fig1);
 end
+% x tick labels only at the bottom, same small gaps between the tiles
+% (findall: last created axes first)
+tightenTiles(flipud(findall(fig1,'Type','axes')));
 printFigure(fig1, fullfile(dirFig,['Val',strVal1])); % fixed size (setFigureSize)
 end
 

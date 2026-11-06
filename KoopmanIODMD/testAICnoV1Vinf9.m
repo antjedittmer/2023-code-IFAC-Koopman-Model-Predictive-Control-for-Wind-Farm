@@ -72,8 +72,10 @@ end
 fig = figure;
 cl = [0 0 0; lines(nC)];
 iPlot = 1:nC;
+tl = tiledlayout(fig, 2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+axV = gobjects(2,1);
 for idxV = 1:2
-    subplot(2,1,idxV);
+    axV(idxV) = nexttile(tl, idxV);
     plot(k, Ur(idxV,:), 'Color', cl(1,:), 'LineWidth', 1); hold on;
     for idx = iPlot
         plot(k, UrEst{idx}(idxV,:), 'Color', cl(idx+1,:), 'LineWidth', 1);
@@ -94,6 +96,7 @@ end
 setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 padYLim(fig); % y axes not completely tight
+tightenTiles(axV); % x tick labels only at the bottom, no y tick labels at the limits
 printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_Test9'));
 disp(R)
 end
