@@ -61,7 +61,7 @@ sv = @(A,B) sigma(ss(A, B, eye(2,size(A,1)), zeros(2,size(B,2)), 1), omega);
 fig = figure;
 loglog(omega, sv(model9.A, model9.B)', 'k--', 'LineWidth', 2); hold on; % below the updated models, 2: visible next to them
 ls = {'-','-.','--',':'};
-lw = ones(1,4);
+lw = 1.7*ones(1,4);
 names = cell(1,numel(models));
 for idx = 1:numel(models)
     loglog(omega, sv(models(idx).A, models(idx).B)', 'Color', cl(idx,:), ...
