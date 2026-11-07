@@ -86,11 +86,15 @@ for idxV = 1:2
     rmseStr = sprintf('%.2f/', R{iPlot, sprintf('RMSE_Ur%d', idxV)});
     rmseStr = ['RMSE = ', rmseStr(1:end-1), ' m/s'];
     if idxV == 1
-        title({['Test data 9 m/s (unseen), V_{r1}: ', rmseStr], ...
-            ['Measured, ', colorKey(cellstr(R.Model(iPlot)), cl(iPlot+1,:))]}, ...
-            'Interpreter', 'tex');
+        if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+            title({['Test data 9 m/s (unseen), V_{r1}: ', rmseStr], ...
+                ['Measured, ', colorKey(cellstr(R.Model(iPlot)), cl(iPlot+1,:))]}, ...
+                'Interpreter', 'tex');
+        end
     else
-        title(['V_{r2}: ', rmseStr], 'Interpreter', 'tex');
+        if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+            title(['V_{r2}: ', rmseStr], 'Interpreter', 'tex');
+        end
     end
 end
 setFigureFont(fig, 12); % all text 12 pt, bold titles

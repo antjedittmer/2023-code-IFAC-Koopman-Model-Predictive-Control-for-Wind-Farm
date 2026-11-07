@@ -72,9 +72,11 @@ grid on; axis tight;
 xlabel('Frequency (rad/s)');
 ylabel('Singular values (m/s)');
 set(gca, 'TickLabelInterpreter', 'tex');
-title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
-    ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
-    'Interpreter', 'tex');
+if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+    title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
+        ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
+        'Interpreter', 'tex');
+end
 setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 padYLim(fig); % y axis not completely tight
