@@ -108,17 +108,25 @@ grid on; axis tight; ylim([0 2+0.2])
 ylabel('Thrust $C_T^\prime$ [-]','interpreter','latex','Fontsize',fs); % name and symbol as in chapter 4
 
 if displayOff && length(FITje_val) >1
-    title(sprintf('%s:  VAF %sr1: %d, r2: %d',...
-        strVal,strOut,round(FITje_val(1:2))),'interpreter','latex','Fontsize',fs);
+    if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        title(sprintf('%s:  VAF %sr1: %d, r2: %d',...
+            strVal,strOut,round(FITje_val(1:2))),'interpreter','latex','Fontsize',fs);
+    end
 elseif length(FITje_val)>1
-    title(sprintf('%s Set%s:  VAF %sr1: %d, r2: %d',...
-        strVal,strK,strOut,round(FITje_val(1:2))),'interpreter','latex','Fontsize',fs);
+    if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        title(sprintf('%s Set%s:  VAF %sr1: %d, r2: %d',...
+            strVal,strK,strOut,round(FITje_val(1:2))),'interpreter','latex','Fontsize',fs);
+    end
 elseif displayOff
-    title(sprintf('%s:  VAF %sT: %d',...
-        strVal,strOut,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+    if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        title(sprintf('%s:  VAF %sT: %d',...
+            strVal,strOut,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+    end
 else
-    title(sprintf('%s Set%s:  VAF %sT: %d',...
-        strVal,strK,strOut,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+    if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        title(sprintf('%s Set%s:  VAF %sT: %d',...
+            strVal,strK,strOut,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+    end
 end
 
 
@@ -220,6 +228,9 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
         if ~isempty(FITjeRef), estKey{2} = [refName,' ',vafStr(FITjeRef)]; end
         axTop.Title.String = {[latex2tex(strVal), ': ', strMeas], ...
             ['Estimate ', estSig, ': ', colorKey(estKey, [0 0 0; greyRef])]};
+    end
+    if isappdata(groot, 'ShowThesisTitle') && ~getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        axTop.Title.String = '';
     end
 end
 setFigureFont(fig1, fs); % all text 12 pt, bold titles
