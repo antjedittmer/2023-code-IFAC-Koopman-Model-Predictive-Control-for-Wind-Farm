@@ -75,11 +75,15 @@ grid on; axis tight; ylim([0 2+0.2])
 ylabel('Thrust $C_T^\prime$ [-]','interpreter','latex','Fontsize',fs); % name and symbol as in chapter 4
 
 if displayOff
-    title(sprintf('%s: VAF Ur1: %d, Ur2: %d',...
-    strVal,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+    if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        title(sprintf('%s: VAF Ur1: %d, Ur2: %d',...
+        strVal,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+    end
 else
-title(sprintf('%s Set%s:  VAF Ur1: %d, Ur2: %d',...
-    strVal,strK,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+    title(sprintf('%s Set%s:  VAF Ur1: %d, Ur2: %d',...
+        strVal,strK,round(FITje_val)),'interpreter','latex','Fontsize',fs);
+end
 end
 
 
@@ -187,6 +191,9 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
     axTop.Title.String = {axTop.Title.String, ...
         ['Measured sig.: ', colorKey({'WT1','WT2','V_\infty'}, [cl(1,:); cl(2,:); 0 0 0]), ...
         '; Estimated sig.: ', colorKey({'V_{r1,est}','V_{r2,est}'}, [0 0 0.6; 0.6 0 0])]};
+    if isappdata(groot, 'ShowThesisTitle') && ~getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+        axTop.Title.String = '';
+    end
     axs(1).YLabel.String = 'Update (-)';
 end
 setFigureFont(fig1, fs); % all text 12 pt, bold titles

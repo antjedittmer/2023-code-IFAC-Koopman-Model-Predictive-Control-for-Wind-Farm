@@ -97,7 +97,9 @@ end
 strLeg = ['Farm: ', colorTitle(farmNames, farmColors), ...
     '; Turbine: ', colorTitle(turbNames, turbColors)];
 ylabel('Power P_{WF} (MW)'); % name and symbol as in chapter 4
-title({titleStr, strLeg});
+if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
+    title({titleStr, strLeg});
+end
 
 ax(2) = nexttile(tl,iSub(2));
 stairs(time,pd.uInf(time),'k','linewidth',lw); hold on; grid on;
