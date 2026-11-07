@@ -116,8 +116,8 @@ for idxP = 1: 2
 
     end
     
-    xlabel('$y$ [m]','FontSize',fs,'interpreter','latex')
-    ylabel('$x$ [m]','FontSize',fs,'interpreter','latex');
+    xlabel('y (m)','FontSize',fs)
+    ylabel('x (m)','FontSize',fs);
     set(gca,'TickLabelInterpreter','Latex','FontSize',fs)
     
 
