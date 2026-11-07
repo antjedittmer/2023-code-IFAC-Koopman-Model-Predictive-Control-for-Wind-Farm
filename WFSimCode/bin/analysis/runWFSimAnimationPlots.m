@@ -214,8 +214,8 @@ plot(phi1(kPlotVec),PT1(kPlotVec)/10^6,'bo-', phi1(kPlotVec),PT2(kPlotVec)/10^6,
     %legend('P WT1','P WT2', 'P T','max(P T)','Location','eastoutside');
 grid on; hold on;
 set(gca,'TickLabelInterpreter','Latex','FontSize',fs)
-xlabel('yaw $\gamma_1$ [deg]','Interpreter','Latex','FontSize',fs);
-ylabel('Power [MW]','Interpreter','Latex','FontSize',fs);
+xlabel(['Yaw \gamma_1 (',char(176),')'],'FontSize',fs); % as in the thesis
+ylabel('Power (MW)','FontSize',fs);
 
 plot(gammaVec,P(:,1)/10^6,'bs--',gammaVec,P(:,2)/10^6,'rs--');
 axis tight;  posAxis = axis; axis([posAxis(1:2),0,posAxis(4)*1.01]);
@@ -240,8 +240,11 @@ set(gcf,'Name', strName);
 print(gcf,fullfile(dirFig,strName), '-dpng');
 print(gcf,fullfile(dirFig,strName), '-depsc');
 
-legend(legCell,...
-    'Interpreter','Latex','Location','EastOutside','FontSize',fs);
+% PowerVsYaw (thesis figure 01FigPwrVsYaw_tex): tex legend, WF for the
+% wind farm power
+legCellTex = strrep(strrep(strrep(legCell,'$',''),'PT_','PWF_'),'max(PT','max(PWF');
+legend(legCellTex,...
+    'Interpreter','tex','Location','EastOutside','FontSize',fs);
 
 set(nF,'Position',[pos(1:3),pos(4)*0.75]);
 strName = sprintf('PowerVsYaw');
@@ -335,6 +338,13 @@ for idx = 1:3
 
     nF = figure(nF.Number +1); %#ok<SAGROW>
     WFSim_animation_compare( Wp,solCell(vecAC),nF,deltaCell(vecAC),sigmaYCell(vecAC),xDistVecCell(vecAC));
+    % axes up so that the x label (y (m)) is not cut off at the bottom
+    for ax = findobj(nF,'Type','axes')'
+        ax.Position([2,4]) = ax.Position([2,4]) + [0.04,-0.04];
+    end
+    for ta = findall(nF,'Type','textarrow')' % V_inf arrow with the axes
+        ta.Position(2) = ta.Position(2) + 0.04;
+    end
     filenamepng1 = sprintf('gamma%d_%d_AngleCenter',gammaVecAC(vecAC));
     set(gcf,'Name', filenamepng1);
     print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
