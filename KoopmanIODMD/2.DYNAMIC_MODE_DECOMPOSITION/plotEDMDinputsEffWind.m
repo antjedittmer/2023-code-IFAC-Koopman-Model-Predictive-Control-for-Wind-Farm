@@ -91,7 +91,7 @@ cl = lines;
 lw = 1;
 greyRef = [0.6 0.6 0.6]; % reference model estimates (dashed)
 lwRef = 1.7; % thicker than the estimate, so that the grey line stays visible
-fs = 12;
+fs = getTimeSeriesFontSize(); % default 13 (runGenerateAllThesisFigures)
 kplot = 60: length(ysim_val);
 if isempty(tVec)
     xk = 1:length(kplot);
