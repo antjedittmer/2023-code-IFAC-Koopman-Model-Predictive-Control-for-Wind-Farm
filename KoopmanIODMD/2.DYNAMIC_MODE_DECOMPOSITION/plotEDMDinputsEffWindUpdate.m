@@ -58,7 +58,7 @@ set(gcf, 'position', [posDefault(1),posDefault(2)-150,posDefault(3),posDefault(4
 setFigureSize(fig1, [1 hFac]); % export size independent of the screen
 cl = colormap('lines');
 lw = 1;
-fs = 12;
+fs = getTimeSeriesFontSize(); % default 13 (runGenerateAllThesisFigures)
 if isempty(tVec)
     kplot = 60: length(ysim_val);
     xk = 1:length(kplot);

@@ -20,7 +20,7 @@ function fig = plotWFSimTimeseriesTex(pd, dirFig, fileBase)
 
 time = pd.time;
 N = size(pd.CT_prime,1);
-fs = 12;
+fs = getTimeSeriesFontSize(); % default 13 (runGenerateAllThesisFigures)
 lw = 1;
 cl = lines(7);
 
