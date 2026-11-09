@@ -1,4 +1,4 @@
-function [R, fig] = testAICnoV1Vinf9(dirFig, t0, ad)
+function [R, fig] = testAICnoV1Vinf9(dirFig, t0, ad, figSuffix)
 % testAICnoV1Vinf9 test of the Koopman effective wind speed models without
 % V1 (inputs CT1, CT2, outputs Vr1, Vr2) on unseen data at constant
 % V_inf = 9 m/s (validation CT levels, seed 4, not used for any model):
@@ -16,6 +16,8 @@ function [R, fig] = testAICnoV1Vinf9(dirFig, t0, ad)
 %   DataInOutWfSim/AdaptiveAIC
 % - t0: first sample (s), default 240 (wake established, as validateAICnoV1)
 % - ad: settings of the online update (validateAICnoV1)
+% - figSuffix: suffix of the file name, e.g. '_nu010_h5' (default ''); if
+%   given, the name of the learned model also shows nu and h
 %
 % Outputs
 % - R: table of the VAF and RMSE of Vr1, Vr2
@@ -30,6 +32,7 @@ dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 if nargin < 1 || isempty(dirFig), dirFig = dirOut; end
 if nargin < 2 || isempty(t0), t0 = 240; end
 if nargin < 3, ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
+if nargin < 4, figSuffix = ''; end
 
 % Offline models
 file7 = fullfile(dirOut,'KoopAICnoV1.mat');
@@ -57,6 +60,10 @@ W = [S.Ct1(k); S.Ct2(k)];
 cases = {'Offline ID 7 m/s', model7
          'Offline ID 9 m/s', model9
          'Learned', modelL};
+if ~isempty(figSuffix) % settings of the update
+    adF = adaptSettings(ad);
+    cases{3,1} = ['Learned (', sprintf('\\nu = %.2f m/s, h = %d', adF.nu, adF.h), ')'];
+end
 nC = size(cases,1);
 UrEst = cell(nC,1);
 R = table();
@@ -101,7 +108,7 @@ setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 padYLim(fig); % y axes not completely tight
 tightenTiles(axV); % x tick labels only at the bottom, no y tick labels at the limits
-printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_Test9'));
+printFigure(fig, fullfile(dirFig, ['AdaptiveAIC_Test9', figSuffix]));
 disp(R)
 end
 

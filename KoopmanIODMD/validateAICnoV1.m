@@ -1,4 +1,4 @@
-function R = validateAICnoV1(filenameVal, t0, ad, marks)
+function R = validateAICnoV1(filenameVal, t0, ad, marks, figSuffix)
 % validateAICnoV1 open-loop validation of the Koopman effective wind speed
 % model without V1 (identifyAICnoV1, inputs CT1, CT2 only, no yaw) on the
 % data set with the wind speed ramp from 7 to 9 m/s: non-adaptive and
@@ -15,6 +15,8 @@ function R = validateAICnoV1(filenameVal, t0, ad, marks)
 % - marks: times marked in color in the adaptive plot, table with Time_s
 %   and Color (default aicNoV1ModelTimes: the models shown with their
 %   singular values in plotAICnoV1Sigma), [] for none
+% - figSuffix: suffix of the file name of the adaptive plot, e.g.
+%   '_nu010_h5' (default ''); if given, the title also shows nu and h
 
 mainDir = fileparts(fileparts(mfilename('fullpath')));
 addpath(fullfile(mainDir,'WFSimCode','bin','Kmpc')); % koopmanAdaptStep
@@ -26,6 +28,7 @@ end
 if nargin < 2 || isempty(t0), t0 = 240; end
 if nargin < 3 || isempty(ad), ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
 if nargin < 4, marks = aicNoV1ModelTimes(); end
+if nargin < 5, figSuffix = ''; end
 dirOut = fullfile(mainDir,'DataInOutWfSim','AdaptiveAIC');
 modelFile = fullfile(dirOut,'KoopAICnoV1.mat');
 if ~isfile(modelFile)
@@ -62,8 +65,13 @@ for adaptive = [false true]
         strVal = 'Val. non-adaptive';
         marksPlot = [];
     end
+    figName = ['ValP', matlab.lang.makeValidName(strVal), repmat(figSuffix, 1, adaptive)];
+    if adaptive && ~isempty(figSuffix) % settings of the update in the title
+        adF = adaptSettings(ad);
+        strVal = sprintf('%s ($\\nu$ = %.2f m/s, h = %d)', strVal, adF.nu, adF.h);
+    end
     fig = plotEDMDinputsEffWindUpdate(UrEst, [W; V1], Ur, max(vafUr,0), dirOut, 1, model.n, ...
-        strVal, 1 + upd, 1, Vinf, k, 'tex', marksPlot); % time axis (s), TeX
+        strVal, 1 + upd, 1, Vinf, k, 'tex', marksPlot, figName); % time axis (s), TeX
     set(fig,'Name',strVal);
 end
 disp(R)
