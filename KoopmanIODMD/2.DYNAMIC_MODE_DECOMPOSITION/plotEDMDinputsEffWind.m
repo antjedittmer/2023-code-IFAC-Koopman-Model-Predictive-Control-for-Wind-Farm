@@ -234,6 +234,7 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX
     end
 end
 setFigureFont(fig1, fs); % all text 12 pt, bold titles
+setTimeLabelFontSize(fig1); % time axis label 14 (runGenerateAllThesisFigures)
 for ax = findall(fig1,'Type','axes')' % time in s without x10^4 (long identification sets): no extra row
     ax.XAxis.Exponent = 0;
 end
