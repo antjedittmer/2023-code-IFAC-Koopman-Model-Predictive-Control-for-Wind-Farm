@@ -1,4 +1,4 @@
-function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,Pvec,displayOff,Vinf,tVec,interp,marks)
+function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_val,FITje_val,dirFig,Vin,nx,strVal,Pvec,displayOff,Vinf,tVec,interp,marks,figName)
 % plotEDMDinputsEffWind plots the simulated outputs of the eDMD estimations
 % and prints them into the directory given in dirFig.
 % Optional tVec: time (s) of the samples, x axis 'Time (s)' (default: sample index)
@@ -7,6 +7,8 @@ function fig1 = plotEDMDinputsEffWindUpdate(ysim_val,Inputs_val,Deterministic_va
 % V_inf and the estimated signals V_r1,est, V_r2,est in their colors)
 % Optional marks: table with Time_s and Color (plotAICnoV1Sigma), colored
 % lines at these times in the update subplot (tVec required)
+% Optional figName: file name without folder and extension (default
+% ValP<strVal as valid name>)
 
 if nargin < 6
     Vin = 0;
@@ -37,6 +39,10 @@ end
 
 if nargin < 14
     marks = [];
+end
+
+if nargin < 15
+    figName = '';
 end
 
 if nx > 0
@@ -206,7 +212,8 @@ end
 % x tick labels only at the bottom, same small gaps between the tiles
 % (findall: last created axes first)
 tightenTiles(flipud(findall(fig1,'Type','axes')));
-printFigure(fig1, fullfile(dirFig,['ValP',strVal1])); % fixed size (setFigureSize)
+if isempty(figName), figName = ['ValP',strVal1]; end
+printFigure(fig1, fullfile(dirFig,figName)); % fixed size (setFigureSize)
 end
 
 function str = latex2tex(str)

@@ -1,4 +1,4 @@
-function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad, tSel)
+function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad, tSel, figSuffix)
 % plotAICnoV1Sigma singular values of the Koopman effective wind speed model
 % without V1 (identifyAICnoV1: inputs CT1, CT2, outputs Vr1, Vr2) during the
 % online update, as Fig. 3 of the CDC22 paper: the model is updated in the
@@ -14,6 +14,8 @@ function [fig, sel] = plotAICnoV1Sigma(dirFig, filenameVal, t0, ad, tSel)
 % - filenameVal, t0, ad: validation data and update settings (validateAICnoV1)
 % - tSel: table with the times (Time_s) and colors (Color) of the shown
 %   models, at most 4 (default aicNoV1ModelTimes: 240, 5100, 6000, 8000 s)
+% - figSuffix: suffix of the file name, e.g. '_nu010_h5' (default ''); if
+%   given, the title also shows nu and h
 %
 % Outputs
 % - fig: figure handle
@@ -29,6 +31,7 @@ if nargin < 2 || isempty(filenameVal), filenameVal = 'sowfa_2turb_ct_levels_val'
 if nargin < 3 || isempty(t0), t0 = 240; end
 if nargin < 4 || isempty(ad), ad = struct('h',5,'nu',0.15,'resetState',true,'trigChannels',1); end
 if nargin < 5 || isempty(tSel), tSel = aicNoV1ModelTimes(); end
+if nargin < 6, figSuffix = ''; end
 
 % Offline models at 7 m/s (initial model of the update) and 9 m/s
 file7 = fullfile(dirOut,'KoopAICnoV1.mat');
@@ -73,14 +76,18 @@ xlabel('Frequency (rad/s)');
 ylabel('Singular values (m/s)');
 set(gca, 'TickLabelInterpreter', 'tex');
 if ~isappdata(groot, 'ShowThesisTitle') || getappdata(groot, 'ShowThesisTitle') % title switch of runGenerateAllThesisFigures
-    title({'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
-        ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]}, ...
-        'Interpreter', 'tex');
+    strTitle = {'Model C_{T1}, C_{T2} \rightarrow V_{r1}, V_{r2}, initial: offline ID 7 m/s', ...
+        ['Model at t = ', colorKey(names, cl), '; offline ID ', colorKey({'9 m/s'}, [0 0 0])]};
+    if ~isempty(figSuffix) % settings of the update
+        adF = adaptSettings(ad);
+        strTitle{end+1} = ['Update: ', sprintf('\\nu = %.2f m/s, h = %d', adF.nu, adF.h)];
+    end
+    title(strTitle, 'Interpreter', 'tex');
 end
 setFigureFont(fig, 12); % all text 12 pt, bold titles
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 padYLim(fig); % y axis not completely tight
-printFigure(fig, fullfile(dirFig, 'AdaptiveAIC_OL_Sigma'));
+printFigure(fig, fullfile(dirFig, ['AdaptiveAIC_OL_Sigma', figSuffix]));
 disp(sel)
 end
 
