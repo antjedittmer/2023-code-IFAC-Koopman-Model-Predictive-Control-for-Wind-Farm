@@ -1,4 +1,4 @@
-function gridmesh_zoombox(T2,useLatex)
+function plotMeshDiss_zoombox(T2,useLatex)
 
 if ~nargin
     T2 = 9;
