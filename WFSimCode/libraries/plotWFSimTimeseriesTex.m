@@ -82,7 +82,7 @@ if showEstP % estimated farm power (pink, dotted, 1.5 as the estimated wind spee
     farmColors(end+1,:) = clPest;
 end
 if showGreedy
-    stairs(time,pd.Pgreedy*ones(size(time))/1e6,'--','linewidth',lw,'color',cl(5,:)); % P_greedy dashed green
+    stairs(time,pd.Pgreedy*ones(size(time))/1e6,'--','linewidth',1.5,'color',cl(5,:)); % P_greedy dashed green, 1.5
     farmNames{end+1} = 'P_{greedy}';
     farmColors(end+1,:) = cl(5,:);
 end
