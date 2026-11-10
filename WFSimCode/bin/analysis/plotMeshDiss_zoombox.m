@@ -1,7 +1,7 @@
 function plotMeshDiss_zoombox(T2,useLatex)
 
 if ~nargin
-    T2 = 9;
+    T2 = 2;
 end
 
 % --- LATEX SWITCH ---
