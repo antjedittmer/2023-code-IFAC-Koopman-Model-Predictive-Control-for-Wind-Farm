@@ -6,9 +6,12 @@ function notCalled = plotFlowchartInitCtrlPlant(variant, profInfo, dirFig)
 %   FlowchartInitCtrlPlant_<variant> (png, eps) in dirFig (default
 %   figuresBlockDiagram_IFAC23 next to this file):
 %   - variant 1: original WFSim, nine turbines, NMPC with YALMIP
-%   - variant 2: modified WFSim, two turbines, Koopman MPC (QP). Modified
-%     functions in the colour of their box, functions added for the
-%     Koopman MPC in bold, unchanged functions grey.
+%   - variant 2: modified WFSim, two turbines, Koopman MPC (QP) as in the
+%     current WFSim_demo (default: WRC-AIC, rotor effective wind speeds
+%     estimated from the power). Modified functions in the colour of their
+%     box, functions added for the Koopman MPC in bold, unchanged functions
+%     grey. Not shown: the identification signal set controlSet_sowfa_2turb_
+%     yaw_alm_turbl_AllComb1 (not used in the closed loop).
 %   The functions and their nesting are those of a MATLAB profiler run of
 %   WFSim_demo, reordered by their dependencies (order of the calls).
 %
@@ -67,7 +70,7 @@ if variant == 1
         'wfmodel',                              3, 3, ''
         'matsys',                               3, 3, ''
         'optimize',                             3, 3, ''}];
-    yTop = 44;
+    yTop = 44; y0 = 70;                                                    % box top, first line (px)
 else
     entries = [{
         'WFSim_demo',                           0, 1, 'm'
@@ -78,22 +81,26 @@ else
         'InitWFSim',                            1, 1, ''
         'meshing',                              2, 1, ''
         'Compute_B1_B2_bc',                     2, 1, ''
-        'MPCinitK',                             1, 1, 'n'
+        'MPCinitv',                             1, 1, 'n'
         'koopmanstateextensionWFSim',           2, 1, 'n'}
         farmModel
-        {'qLPVMPCcontroller_dU_quadprog',       1, 3, 'n'
+        {'urFromPower',                         1, 3, 'n'
+        'qLPVMPCcontroller_dU_quadprog',        1, 3, 'n'
         'MPCinit_ctrl',                         2, 3, 'n'
-        'wfmodel',                              2, 3, 'm'
+        'findMaxYaw',                           2, 3, 'n'
+        'wfmodelNL',                            2, 3, 'm'
         'Matsys',                               2, 3, 'm'
+        'MatsysP',                              2, 3, 'n'
         'quadprog_sol',                         2, 3, 'n'
-        'H_G_matrix_dU',                        3, 3, 'n'}];
-    yTop = 51;
+        'H_G_matrix_dU',                        3, 3, 'n'
+        'H_G_Kmatrix_dU',                       3, 3, 'n'}];
+    yTop = 31; y0 = 50;                                                    % 20 px higher: more lines
 end
 
 % Layout in pixels of the png (150 dpi, y downwards), as the thesis figure
 wFig = 875; hFig = 919;
 x0 = 113; dx = 34.3;                                                       % first indentation, per level
-y0 = 70; dy = 24.3;                                                        % first line, line spacing
+dy = 24.3;                                                                 % line spacing
 xBox = [95, 630];
 xLabel = 404;
 boxCol = {[0 0 0], [0 0 1], [1 0 0]};
