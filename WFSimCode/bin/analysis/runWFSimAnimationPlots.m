@@ -1,5 +1,14 @@
 %close all; clear; clc;
 
+% Switch: false (default) generates only the thesis figures PowerVsYaw
+% (power over yaw, figure 1) and the yaw wind fields gamma*_FlowTiled
+% (figures 12 to 14); true also the other figures (paper versions, wind
+% fields of WFSim_animation and WFSim_animation_compare)
+if ~exist('plotAll','var') || isempty(plotAll)
+    plotAll = false;
+end
+posFig = get(groot,'DefaultFigurePosition'); % standard MATLAB position of the thesis figures
+
 %% Get current folder, data folder
 try pwd1 = mfilename('fullpath'); catch, pwd1 = pwd; end
 
@@ -208,9 +217,7 @@ Pk = PT1(kPlotVec)+ PT2(kPlotVec);
 vecIdx = (max(Pk) == Pk);
 
 %% Figure PowerVsYawWFSim and Gaussian Bastankah Wake model
-nF = figure;
-
-pos = get(nF,'Position');
+nF = figure('Position', posFig);
 
 plot(phi1(kPlotVec),PT1(kPlotVec)/10^6,'bo-', phi1(kPlotVec),PT2(kPlotVec)/10^6,'ro-', ...
     phi1(kPlotVec),Pk/10^6,'ko-',phi1K(vecIdx),max(Pk)/10^6,'go','Linewidth',1); ...
@@ -238,10 +245,12 @@ legend(legCell1,...
     'Interpreter','Latex','Location','EastOutside','FontSize',fs+1);
 
 %sprintf('max P: $\\gamma$ = %d [deg]', phi1K(vecIdx)),...
-strName = sprintf('PowerVsYaw_Pos1');
-set(gcf,'Name', strName);
-print(gcf,fullfile(dirFig,strName), '-dpng');
-print(gcf,fullfile(dirFig,strName), '-depsc');
+if plotAll % paper version with LaTeX legend
+    strName = sprintf('PowerVsYaw_Pos1');
+    set(gcf,'Name', strName);
+    print(gcf,fullfile(dirFig,strName), '-dpng');
+    print(gcf,fullfile(dirFig,strName), '-depsc');
+end
 
 % PowerVsYaw (thesis figure 01FigPwrVsYaw_tex): tex legend, WF for the
 % wind farm power; legend on top without box in two rows (WFSim, Gauss)
@@ -254,111 +263,116 @@ hLeg = legend(legCellTex,...
 hLeg.ItemTokenSize = [18 18]; % short line samples: legend within the figure width (property only)
 set(gca,'TickLabelInterpreter','tex');
 aPos4powyaw = 1;
-set(nF,'Position',[pos(1:3),pos(4)*aPos4powyaw]);
+set(nF,'Position',[posFig(1:3),posFig(4)*aPos4powyaw]);
 strName = sprintf('PowerVsYaw');
 set(gcf,'Name', strName);
 print(gcf,fullfile(dirFig,strName), '-dpng');
 print(gcf,fullfile(dirFig,strName), '-depsc');
 
 
-%% Figure PowerVsYawWFSim only
-nF = figure(nF.Number +1);
-fs = 13;
-plot(phi1(kPlotVec),PT1(kPlotVec)/10^6,'bo-', phi1(kPlotVec),PT2(kPlotVec)/10^6,'ro-', ...
-    phi1(kPlotVec),Pk/10^6,'ko-',phi1K(vecIdx),max(Pk)/10^6,'go','Linewidth',1);
-    %legend('P WT1','P WT2', 'P T','max(P T)','Location','eastoutside');
-axis tight; grid on; 
-set(gca,'TickLabelInterpreter','Latex','FontSize',fs)
-xlabel('yaw $\gamma$ [deg]','Interpreter','Latex','FontSize',fs);
-ylabel('Power [MW]','Interpreter','Latex','FontSize',fs);
+%% Other figures (paper versions, WFSim_animation, WFSim_animation_compare): only with plotAll
+if plotAll
 
-hl = legend('$P1_{WFSim}$','$P2_{WFSim}$','$PT_{WFSim}$','max($PT_{WFSim}$)',...
-    'Interpreter','Latex'); %,'Location','EastOutside');
+    %% Figure PowerVsYawWFSim only
+    nF = figure(nF.Number +1);
+    fs = 13;
+    plot(phi1(kPlotVec),PT1(kPlotVec)/10^6,'bo-', phi1(kPlotVec),PT2(kPlotVec)/10^6,'ro-', ...
+        phi1(kPlotVec),Pk/10^6,'ko-',phi1K(vecIdx),max(Pk)/10^6,'go','Linewidth',1);
+        %legend('P WT1','P WT2', 'P T','max(P T)','Location','eastoutside');
+    axis tight; grid on; 
+    set(gca,'TickLabelInterpreter','Latex','FontSize',fs)
+    xlabel('yaw $\gamma$ [deg]','Interpreter','Latex','FontSize',fs);
+    ylabel('Power [MW]','Interpreter','Latex','FontSize',fs);
 
-hlPos = hl.Position;
-hl.Position = [(hlPos(1) - 0.1), (hlPos(2) -0.05),hlPos(3:4)];
+    hl = legend('$P1_{WFSim}$','$P2_{WFSim}$','$PT_{WFSim}$','max($PT_{WFSim}$)',...
+        'Interpreter','Latex'); %,'Location','EastOutside');
 
-strName = sprintf('PowerVsYawWFSimOnly');
-set(gcf,'Name', strName);
-print(gcf,fullfile(dirFig,strName), '-dpng');
-print(gcf,fullfile(dirFig,strName), '-depsc');
+    hlPos = hl.Position;
+    hl.Position = [(hlPos(1) - 0.1), (hlPos(2) -0.05),hlPos(3:4)];
+
+    strName = sprintf('PowerVsYawWFSimOnly');
+    set(gcf,'Name', strName);
+    print(gcf,fullfile(dirFig,strName), '-dpng');
+    print(gcf,fullfile(dirFig,strName), '-depsc');
 
 
-%% Run image sweep with est. Gaussian wake centerline (long, lat, center)
-cnt = 1; % this cnt is used to assemble the long. wind in one plot
-for idx = [1,3,5,7] %length(kPlotVec)
-    aK = kPlotVec(idx);
-    sol = sol_array(aK);
-    nF = figure(nF.Number +1); hfig(idx) = nF;%#ok<SAGROW>
-    pos = get(hfig(idx),'Position');
-    set(hfig(idx),'Position',[pos(1:3),pos(4)*1.2]);
-    
-    idxPlot = xDistVec <= diff(Wp.turbine.Crx);
-    idxPlotSigmaNaN = xDistVec(idxPlot) < (x0Vec(idx)-5);
-    delta = deltaVec(idxPlot,idx);
-    sigmaY = sigmaYVec(idxPlot,idx);
-    sigmaY(idxPlotSigmaNaN) = NaN;
-    xDistPlot = xDistVec(idxPlot);
-    
-    WFSim_animation(Wp,sol,hfig(idx), delta,sigmaY, xDistPlot);
-    
-    solCell{cnt} =  sol;
-    deltaCell{cnt} = delta;
-    sigmaYCell{cnt} = sigmaY;
-    xDistVecCell{cnt} = xDistPlot;
-    cnt = cnt +1;
-    
-    filenamepng1 = sprintf('%s_AngleCenter%02d',filenamepng,angleVec(idx));
+    %% Run image sweep with est. Gaussian wake centerline (long, lat, center)
+    cnt = 1; % this cnt is used to assemble the long. wind in one plot
+    for idx = [1,3,5,7] %length(kPlotVec)
+        aK = kPlotVec(idx);
+        sol = sol_array(aK);
+        nF = figure(nF.Number +1); hfig(idx) = nF;%#ok<SAGROW>
+        pos = get(hfig(idx),'Position');
+        set(hfig(idx),'Position',[pos(1:3),pos(4)*1.2]);
 
-    set(gcf,'Name', filenamepng1);
-    print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
-    print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
-    
-end
+        idxPlot = xDistVec <= diff(Wp.turbine.Crx);
+        idxPlotSigmaNaN = xDistVec(idxPlot) < (x0Vec(idx)-5);
+        delta = deltaVec(idxPlot,idx);
+        sigmaY = sigmaYVec(idxPlot,idx);
+        sigmaY(idxPlotSigmaNaN) = NaN;
+        xDistPlot = xDistVec(idxPlot);
 
-%% Run image sweep again but without estimated centerline
-%cosGamma = cos(angleVec./180*pi);
+        WFSim_animation(Wp,sol,hfig(idx), delta,sigmaY, xDistPlot);
 
-for idx = [1,5] %length(kPlotVec)
-    aK = kPlotVec(idx);
-    sol = sol_array(aK);
-    nF = figure(nF.Number +1); hfig(idx+1) = nF;%#ok<SAGROW>
-    pos = get(hfig(idx),'Position');
-    set(hfig(idx+1),'Position',pos);
-            
-    WFSim_animation(Wp,sol,hfig(idx+1));
-    
-    filenamepng1 = sprintf('%s_Angle%02d',filenamepng,angleVec(idx));
-    set(gcf,'Name', filenamepng1);
-    print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
-    print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
-    
-end
+        solCell{cnt} =  sol;
+        deltaCell{cnt} = delta;
+        sigmaYCell{cnt} = sigmaY;
+        xDistVecCell{cnt} = xDistPlot;
+        cnt = cnt +1;
 
-%% Plot one image for both yaw angle
+        filenamepng1 = sprintf('%s_AngleCenter%02d',filenamepng,angleVec(idx));
 
-vecACvec = [1:2;3:4;1,3];
-gammaVecAC = gammaVec([1,3,5,7]);
+        set(gcf,'Name', filenamepng1);
+        print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
+        print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
 
-for idx = 1:3
-    vecAC = vecACvec(idx,:);
-    %gammaVecAC(vecAC)
-
-    nF = figure(nF.Number +1); %#ok<SAGROW>
-    WFSim_animation_compare( Wp,solCell(vecAC),nF,deltaCell(vecAC),sigmaYCell(vecAC),xDistVecCell(vecAC));
-    % axes up so that the x label (y (m)) is not cut off at the bottom
-    for ax = findobj(nF,'Type','axes')'
-        ax.Position([2,4]) = ax.Position([2,4]) + [0.04,-0.04];
     end
-    for ta = findall(nF,'Type','textarrow')' % V_inf arrow with the axes
-        ta.Position(2) = ta.Position(2) + 0.04;
-    end
-    filenamepng1 = sprintf('gamma%d_%d_AngleCenter',gammaVecAC(vecAC));
-    set(gcf,'Name', filenamepng1);
-    print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
-    print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
 
-end
+    %% Run image sweep again but without estimated centerline
+    %cosGamma = cos(angleVec./180*pi);
+
+    for idx = [1,5] %length(kPlotVec)
+        aK = kPlotVec(idx);
+        sol = sol_array(aK);
+        nF = figure(nF.Number +1); hfig(idx+1) = nF;%#ok<SAGROW>
+        pos = get(hfig(idx),'Position');
+        set(hfig(idx+1),'Position',pos);
+
+        WFSim_animation(Wp,sol,hfig(idx+1));
+
+        filenamepng1 = sprintf('%s_Angle%02d',filenamepng,angleVec(idx));
+        set(gcf,'Name', filenamepng1);
+        print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
+        print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
+
+    end
+
+    %% Plot one image for both yaw angle
+
+    vecACvec = [1:2;3:4;1,3];
+    gammaVecAC = gammaVec([1,3,5,7]);
+
+    for idx = 1:3
+        vecAC = vecACvec(idx,:);
+        %gammaVecAC(vecAC)
+
+        nF = figure(nF.Number +1); %#ok<SAGROW>
+        WFSim_animation_compare( Wp,solCell(vecAC),nF,deltaCell(vecAC),sigmaYCell(vecAC),xDistVecCell(vecAC));
+        % axes up so that the x label (y (m)) is not cut off at the bottom
+        for ax = findobj(nF,'Type','axes')'
+            ax.Position([2,4]) = ax.Position([2,4]) + [0.04,-0.04];
+        end
+        for ta = findall(nF,'Type','textarrow')' % V_inf arrow with the axes
+            ta.Position(2) = ta.Position(2) + 0.04;
+        end
+        filenamepng1 = sprintf('gamma%d_%d_AngleCenter',gammaVecAC(vecAC));
+        set(gcf,'Name', filenamepng1);
+        print(gcf,fullfile(dirFig,filenamepng1), '-dpng');
+        print(gcf,fullfile(dirFig,filenamepng1), '-depsc');
+
+    end
+
+end % plotAll
 
 %% Flow left to right: two yaw angles per figure (tiled layout)
 % Colormap sky extended by black and white, Bastankhah wake in bold blue
@@ -380,9 +394,9 @@ for idx = 1:size(gammaPairs,1)
         sigmaP{k} = sigmaY;
         xP{k} = xDistVec(idxPlot);
     end
-    nF = figure(nF.Number +1);
-    pos = get(nF,'Position');
-    set(nF,'Position',[pos(1:3),pos(4)*0.85]); % default MATLAB width, height of two tiles
+    nF = figure(11 + idx); % figures 12 to 14
+    clf(nF);
+    set(nF,'Position',posFig); % standard MATLAB position, as PowerVsYaw
     WFSim_flow_tiled(Wp,solP,deltaP,sigmaP,xP,nF,optsFlow);
     filenamepng1 = sprintf('gamma%d_%d_FlowTiled',gammaPairs(idx,:));
     set(nF,'Name', filenamepng1);
