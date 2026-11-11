@@ -203,6 +203,7 @@ if strcmpi(interp,'tex') % convert all LaTeX strings to TeX, color key instead o
     axs(1).YLabel.String = 'Update (-)';
 end
 setFigureFont(fig1, fs); % all text 12 pt, bold titles
+setTimeLabelFontSize(fig1); % time axis label 14 (runGenerateAllThesisFigures)
 
 %sys_red{1,1}.Xint = xo;
 strVal1 = matlab.lang.makeValidName(strVal);
