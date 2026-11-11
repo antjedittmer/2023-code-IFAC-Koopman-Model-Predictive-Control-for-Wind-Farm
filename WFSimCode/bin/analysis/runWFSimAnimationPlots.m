@@ -363,10 +363,12 @@ end
 %% Flow left to right: two yaw angles per figure (tiled layout)
 % Colormap sky extended by black and white, Bastankhah wake in bold blue
 gammaPairs = [0 5; 10 20; 25 30];
-% One colour scale for all yaw figures: same colour for the same speed
+% One colour scale for all yaw figures: same colour for the same speed;
+% diverging colormap as MAECOsim (white V_inf, blue deficit, red speed-up)
 iGAll = arrayfun(@(g) find(angleVec == g), gammaPairs(:));
 uMinAll = min(arrayfun(@(i) min(sol_array(kPlotVec(i)).u(5:end-4,5:end-4),[],'all'), iGAll));
-optsFlow = struct('cLim', [uMinAll, 1.05*Wp.site.u_Inf]);
+uMaxAll = max(arrayfun(@(i) max(sol_array(kPlotVec(i)).u(5:end-4,5:end-4),[],'all'), iGAll));
+optsFlow = struct('cLim', [uMinAll, uMaxAll]);
 for idx = 1:size(gammaPairs,1)
     iG = arrayfun(@(g) find(angleVec == g), gammaPairs(idx,:));
     idxPlot = xDistVec <= diff(Wp.turbine.Crx);

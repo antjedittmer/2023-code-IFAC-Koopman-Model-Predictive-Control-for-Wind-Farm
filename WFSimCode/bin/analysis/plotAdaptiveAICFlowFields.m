@@ -4,8 +4,9 @@ function files = plotAdaptiveAICFlowFields(tSel, dirFig, rerun)
 %   adaptive AIC closed-loop run of mainGeneratePlotThesisAdaptiveAIC
 %   (sol_update = 1, default update settings, UrFromPower = 1) with
 %   WFSim_flow_tiled: two figures with two snapshots each, flow from left
-%   to right, one colour scale for all tiles (same colour for the same
-%   speed), titles with time, P_ref and C_T' of both turbines.
+%   to right, deviation u - V_inf from the inflow speed of each snapshot
+%   with one colour scale for all tiles (white: free stream), titles with
+%   time, P_ref and C_T' of both turbines.
 %
 %   plotAdaptiveAICFlowFields(tSel, dirFig, rerun)
 %   - tSel: times in s, one row per figure (default [240 2100; 2520 4990]:
@@ -47,14 +48,16 @@ tmp = load(fullfile(dirCL, [runBase, '_plotData.mat']), 'pd');
 pd = tmp.pd;
 tSnap = round([S.snap.time]);
 
-% One colour scale for all figures: minimum of the shown fields, 9 m/s
+% One colour scale for all figures: deviation u - V_inf from the inflow
+% speed of each snapshot (7 or 9 m/s), diverging colormap as MAECOsim
+% (white free stream, blue deficit, red speed-up)
 iAll = arrayfun(@(tt) find(tSnap == tt, 1), tSel(:));
 if numel(iAll) < numel(tSel)
     error('plotAdaptiveAICFlowFields:time', 'Snapshots only every 5 s (times %s).', mat2str(tSel));
 end
-uMin = min(arrayfun(@(s) min(s.u(5:end-4,5:end-4), [], 'all'), S.snap(iAll)));
-uRef = max(arrayfun(@(s) s.u(1, ceil(end/2)), S.snap));                   % free stream after the ramp (9 m/s)
-opts = struct('uRef', uRef, 'cLim', [uMin, 1.05*uRef]);
+dU = arrayfun(@(s) s.u(5:end-4,5:end-4) - s.u(1, ceil(end/2)), S.snap(iAll), 'UniformOutput', false);
+opts = struct('relative', true, ...
+    'cLim', [min(cellfun(@(d) min(d, [], 'all'), dU)), max(cellfun(@(d) max(d, [], 'all'), dU))]);
 
 files = cell(size(tSel,1), 1);
 for f = 1:size(tSel,1)
