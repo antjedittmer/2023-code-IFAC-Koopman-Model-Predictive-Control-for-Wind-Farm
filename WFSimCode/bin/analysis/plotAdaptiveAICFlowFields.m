@@ -49,8 +49,7 @@ pd = tmp.pd;
 tSnap = round([S.snap.time]);
 
 % One colour scale for all figures: deviation u - V_inf from the inflow
-% speed of each snapshot (7 or 9 m/s), diverging colormap as MAECOsim
-% (white free stream, blue deficit, red speed-up)
+% speed of each snapshot (7 or 9 m/s), colormap hot (WFSim_flow_tiled)
 iAll = arrayfun(@(tt) find(tSnap == tt, 1), tSel(:));
 if numel(iAll) < numel(tSel)
     error('plotAdaptiveAICFlowFields:time', 'Snapshots only every 5 s (times %s).', mat2str(tSel));
@@ -71,7 +70,7 @@ for f = 1:size(tSel,1)
     end
     nF = figure;
     pos = get(nF, 'Position');
-    set(nF, 'Position', [pos(1:2), pos(3)*1.3, pos(4)*0.6*size(tSel,2)]);
+    set(nF, 'Position', [pos(1:3), pos(4)*0.5*size(tSel,2)]);            % default MATLAB width, height of the tiles
     WFSim_flow_tiled(S.Wp, solP, [], [], [], nF, opts);
     files{f} = fullfile(dirFig, ['adaptiveAIC', sprintf('_t%d', tSel(f,:)), '_FlowTiled']);
     set(nF, 'Name', files{f});

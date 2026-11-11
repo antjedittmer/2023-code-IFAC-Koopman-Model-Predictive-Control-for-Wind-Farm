@@ -5,24 +5,26 @@ function hfig = WFSim_flow_tiled(Wp, solCell, deltaCell, sigmaYCell, xDistCell, 
 %   the other) with x horizontal (flow from left to right), one colorbar
 %   for all tiles and the Bastankhah Gaussian wake (centerline delta
 %   dashed, expansion sigma_y dash-dotted) in bold blue lines with white
-%   outline. Default colormap as in the MAECOsim figures: diverging
-%   blue - white - red with white at the free stream speed: blue velocity
-%   deficit (wake), red speed-up; blue and red each over their own range.
+%   outline. Default colormap hot (black - red - yellow - white, upper
+%   limit 1.05*uRef as in the original WFSim figures: the wake stands out
+%   clearly), rotors as black lines, labels WT1 blue and WT2 red. The free
+%   stream V_inf is shown in the lower left corner, the yaw angle of WT1
+%   in the lower right corner.
 %   deltaCell, sigmaYCell, xDistCell: centerline, wake width and
 %   downstream distance from the rotor of WT1 (runWFSimAnimationPlots);
 %   empty deltaCell: no wake lines.
 %   opts (optional struct):
-%   - titles: cell with one title per tile (default: yaw angle of WT1)
-%   - uRef: free stream speed, white in the colormap (default
-%     Wp.site.u_Inf)
+%   - titles: cell with one title per tile instead of the yaw angle
+%   - uRef: free stream speed (default Wp.site.u_Inf)
 %   - relative: true plots u - V_inf with the inflow speed V_inf of each
-%     tile (white at 0), e.g. for snapshots with different inflow speeds
-%     (default false)
-%   - cLim: colour limits (default: minimum and maximum of the fields);
-%     the same cLim in several figures gives the same colour for the same
-%     speed
-%   - cMapStyle: 'diverging' (default) or 'sky' (black - blue-grey - sky -
-%     white, upper limit 1.05*uRef)
+%     tile, e.g. for snapshots with different inflow speeds (default false)
+%   - cLim: colour limits; the same cLim in several figures gives the same
+%     colour for the same speed
+%   - cMapStyle: 'hot' (default), 'diverging' (as the MAECOsim figures:
+%     blue - white - red with white at the free stream, blue deficit, red
+%     speed-up, each over its own range) or 'sky' (black - blue-grey -
+%     sky - white, upper limit 1.05*uRef)
+%   - rotorColor: colour of the rotor lines (default black)
 
 if nargin < 6 || isempty(hfig)
     hfig = figure;
@@ -34,7 +36,7 @@ fs = 12;
 lwWake = 2;                                                                % bold Bastankhah lines
 clWake = [0 0 1];
 clT = {[0 0 1], [1 0 0], [0 0 0]};                                         % WT1 blue, WT2 red (as in the power plots)
-cMapStyle = 'diverging';
+cMapStyle = 'hot';
 if isfield(opts, 'cMapStyle'), cMapStyle = opts.cMapStyle; end
 relative = isfield(opts, 'relative') && opts.relative;
 
@@ -64,7 +66,15 @@ if relative, uWhite = 0; end
 fMin = min(cellfun(@(f) min(f, [], 'all'), F));
 fMax = max(cellfun(@(f) max(f, [], 'all'), F));
 
-if strcmp(cMapStyle, 'sky')
+if strcmp(cMapStyle, 'hot')
+    % MATLAB hot (black - red - yellow - white), upper limit 1.05*uRef as
+    % in the original WFSim animation figures
+    cLim = [fMin, uWhite + 0.05*uRef];
+    if isfield(opts, 'cLim'), cLim = opts.cLim; end
+    cH = hot(256);
+    uNodes = linspace(cLim(1), cLim(2), 256);
+    cNodes = cH;
+elseif strcmp(cMapStyle, 'sky')
     % Black (wake core) - blue-grey - sky (dark to light) - white (free
     % stream): brightness increases with the wind speed; nodes in m/s
     cLim = [fMin, uWhite + 0.05*uRef];
@@ -91,7 +101,7 @@ end
 t = linspace(cLim(1), cLim(2), 256)';
 cMap = [interp1(uNodes, cNodes(:,1), t), interp1(uNodes, cNodes(:,2), t), interp1(uNodes, cNodes(:,3), t)];
 
-tl = tiledlayout(hfig, nT, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+tl = tiledlayout(hfig, nT, 1, 'TileSpacing', 'tight', 'Padding', 'tight');
 ax = gobjects(nT, 1);
 for iT = 1:nT
     sol = solCell{iT};
@@ -114,7 +124,9 @@ for iT = 1:nT
         dx = 0.5*Dr*sind(phi(kk)); dy = 0.5*Dr*cosd(phi(kk));
         xr = Crx(kk) + [-dx, dx]; yr = Cry(kk) + [-dy, dy];
         plot(ax(iT), xr, yr, 'w', 'LineWidth', 4.5);
-        plot(ax(iT), xr, yr, 'Color', clT{kk}, 'LineWidth', 2.5);
+        clRotor = [0 0 0];                                                 % black rotors, labels in the turbine colours
+        if isfield(opts, 'rotorColor'), clRotor = opts.rotorColor; end
+        plot(ax(iT), xr, yr, 'Color', clRotor, 'LineWidth', 2.5);
         text(ax(iT), Crx(kk) - 40, Cry(kk) + 0.5*Dr + 50, sprintf('WT%d', kk), 'FontSize', fs, ...
             'Color', clT{kk}, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
     end
@@ -142,16 +154,17 @@ for iT = 1:nT
     end
 
     % Free stream at the inflow boundary: arrow bottom left, away from the turbine labels
-    text(ax(iT), x(idxX(1)) + 30, y(idxY(1)) + 50, sprintf('V_\\infty = %.0f m/s \\rightarrow', uIn(iT)), ...
-        'FontSize', 14, 'VerticalAlignment', 'middle');
+    text(ax(iT), x(idxX(1)) + 30, y(idxY(1)) + 15, sprintf('V_\\infty = %.0f m/s \\rightarrow', uIn(iT)), ...
+        'FontSize', 14, 'VerticalAlignment', 'bottom');                    % subscript inside the axes
+    if ~isfield(opts, 'titles')                                            % without titles: yaw angle of WT1, lower right corner
+        text(ax(iT), x(idxX(end)) - 30, y(idxY(1)) + 15, sprintf('\\gamma_1 = %d%s', round(phi(1)), char(176)), ...
+            'FontSize', 14, 'VerticalAlignment', 'bottom', 'HorizontalAlignment', 'right');
+    end
 
     axis(ax(iT), 'equal', 'tight');
     if isfield(opts, 'titles')
-        titleStr = opts.titles{iT};
-    else
-        titleStr = sprintf('\\gamma_1 = %d%s', round(phi(1)), char(176));
+        title(ax(iT), opts.titles{iT}, 'FontSize', fs, 'FontWeight', 'normal');
     end
-    title(ax(iT), titleStr, 'FontSize', fs, 'FontWeight', 'normal');
     ylabel(ax(iT), 'y (m)');
     set(ax(iT), 'FontSize', fs, 'TickLabelInterpreter', 'tex', 'Layer', 'top', 'Box', 'on');
     if iT < nT

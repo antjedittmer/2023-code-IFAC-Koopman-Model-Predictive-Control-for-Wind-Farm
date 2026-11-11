@@ -364,11 +364,10 @@ end
 % Colormap sky extended by black and white, Bastankhah wake in bold blue
 gammaPairs = [0 5; 10 20; 25 30];
 % One colour scale for all yaw figures: same colour for the same speed;
-% diverging colormap as MAECOsim (white V_inf, blue deficit, red speed-up)
+% colormap hot up to 1.05*V_inf (wake clearly visible), black rotors
 iGAll = arrayfun(@(g) find(angleVec == g), gammaPairs(:));
 uMinAll = min(arrayfun(@(i) min(sol_array(kPlotVec(i)).u(5:end-4,5:end-4),[],'all'), iGAll));
-uMaxAll = max(arrayfun(@(i) max(sol_array(kPlotVec(i)).u(5:end-4,5:end-4),[],'all'), iGAll));
-optsFlow = struct('cLim', [uMinAll, uMaxAll]);
+optsFlow = struct('cLim', [uMinAll, 1.05*Wp.site.u_Inf]);
 for idx = 1:size(gammaPairs,1)
     iG = arrayfun(@(g) find(angleVec == g), gammaPairs(idx,:));
     idxPlot = xDistVec <= diff(Wp.turbine.Crx);
@@ -383,7 +382,7 @@ for idx = 1:size(gammaPairs,1)
     end
     nF = figure(nF.Number +1);
     pos = get(nF,'Position');
-    set(nF,'Position',[pos(1:2),pos(3)*1.3,pos(4)*1.2]);
+    set(nF,'Position',[pos(1:3),pos(4)*0.85]); % default MATLAB width, height of two tiles
     WFSim_flow_tiled(Wp,solP,deltaP,sigmaP,xP,nF,optsFlow);
     filenamepng1 = sprintf('gamma%d_%d_FlowTiled',gammaPairs(idx,:));
     set(nF,'Name', filenamepng1);
