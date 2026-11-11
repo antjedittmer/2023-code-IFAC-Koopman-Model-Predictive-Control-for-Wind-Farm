@@ -15,6 +15,7 @@ end
 fs = 12;
 lwWake = 2;                                                                % bold Bastankhah lines
 clWake = [0 0 1];
+clT = {[0 0 1], [1 0 0], [0 0 0]};                                         % WT1 blue, WT2 red (as in the power plots)
 
 Dr  = Wp.turbine.Drotor;
 Crx = Wp.turbine.Crx; Cry = Wp.turbine.Cry;
@@ -25,13 +26,18 @@ y = Wp.mesh.ldyy(1,:);
 idxX = 5:numel(x)-4;                                                       % without the boundary cells
 idxY = 5:numel(y)-4;
 
-% Colormap: black - sky (dark to light) - white
-cSky = flipud(sky(256));
-nodes = [0, 0.15, 0.9, 1];
-cNodes = [0 0 0; cSky(1,:); cSky(end,:); 1 1 1];
-t = linspace(0, 1, 256)';
-cMap = [interp1(nodes, cNodes(:,1), t), interp1(nodes, cNodes(:,2), t), interp1(nodes, cNodes(:,3), t)];
+% Colormap: black (wake core) - dark red - sky (dark to light) - white
+% (free stream): brightness increases with the wind speed, the hue changes
+% inside the wake (more detail than a single blue gradient), and the blue
+% wake lines stay readable on dark red. Nodes in m/s, so that the same
+% speed has the same colour in all figures.
 cLim = [min(cellfun(@(s) min(s.u(idxX,idxY), [], 'all'), solCell)), uInf*1.05];
+cSky = flipud(sky(256));
+uNodes = [cLim(1), 0.5*uInf, 0.62*uInf, 0.95*uInf, cLim(2)];
+uNodes(2:end-1) = max(uNodes(2:end-1), cLim(1) + (1:3)*1e-3);           % increasing also for low minima
+cNodes = [0 0 0; 0.55 0 0; cSky(1,:); cSky(end,:); 1 1 1];
+t = linspace(cLim(1), cLim(2), 256)';
+cMap = [interp1(uNodes, cNodes(:,1), t), interp1(uNodes, cNodes(:,2), t), interp1(uNodes, cNodes(:,3), t)];
 
 nT = numel(solCell);
 tl = tiledlayout(hfig, nT, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -44,15 +50,16 @@ for iT = 1:nT
     hold(ax(iT), 'on');
     colormap(ax(iT), cMap); clim(ax(iT), cLim);
 
-    % Turbines: rotor as black line with white outline (visible in the wake)
+    % Turbines: rotor in the turbine colour (WT1 blue, WT2 red) with white
+    % outline (visible in the wake)
     phi = sol.turbInput.phi;
     for kk = 1:N
         dx = 0.5*Dr*sind(phi(kk)); dy = 0.5*Dr*cosd(phi(kk));
         xr = Crx(kk) + [-dx, dx]; yr = Cry(kk) + [-dy, dy];
-        plot(ax(iT), xr, yr, 'w', 'LineWidth', 4);
-        plot(ax(iT), xr, yr, 'k', 'LineWidth', 2);
-        text(ax(iT), Crx(kk) - 40, Cry(kk) + 0.5*Dr + 50, sprintf('T_%d', kk), 'FontSize', fs, ...
-            'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+        plot(ax(iT), xr, yr, 'w', 'LineWidth', 4.5);
+        plot(ax(iT), xr, yr, 'Color', clT{kk}, 'LineWidth', 2.5);
+        text(ax(iT), Crx(kk) - 40, Cry(kk) + 0.5*Dr + 50, sprintf('WT%d', kk), 'FontSize', fs, ...
+            'Color', clT{kk}, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
     end
 
     % Bastankhah wake of WT1: centerline delta and expansion +/- sigma_y
@@ -70,7 +77,7 @@ for iT = 1:nT
 
     % Free stream: arrow at the inflow (bottom left, away from the turbine labels)
     text(ax(iT), x(idxX(1)) + 30, y(idxY(1)) + 50, sprintf('V_\\infty = %.0f m/s \\rightarrow', uInf), ...
-        'FontSize', fs, 'VerticalAlignment', 'middle');
+        'FontSize', 14, 'VerticalAlignment', 'middle');
 
     axis(ax(iT), 'equal', 'tight');
     title(ax(iT), sprintf('\\gamma_1 = %d%s', round(phi(1)), char(176)), 'FontSize', fs, ...
