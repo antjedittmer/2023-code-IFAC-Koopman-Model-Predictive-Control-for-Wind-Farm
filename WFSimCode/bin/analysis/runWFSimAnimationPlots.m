@@ -244,12 +244,17 @@ print(gcf,fullfile(dirFig,strName), '-dpng');
 print(gcf,fullfile(dirFig,strName), '-depsc');
 
 % PowerVsYaw (thesis figure 01FigPwrVsYaw_tex): tex legend, WF for the
-% wind farm power
+% wind farm power; legend on top without box in two rows (WFSim, Gauss)
+% of four columns (P1, P2, PWF, max), tick labels in the font of the
+% wind field figures (tex)
 legCellTex = strrep(strrep(strrep(legCell,'$',''),'PT_','PWF_'),'max(PT','max(PWF');
-legend(legCellTex,...
-    'Interpreter','tex','Location','EastOutside','FontSize',fs);
-
-set(nF,'Position',[pos(1:3),pos(4)*0.75]);
+hLeg = legend(legCellTex,...
+    'Interpreter','tex','Location','northoutside','FontSize',fs, ...
+    'Orientation','horizontal','NumColumns',4,'Box','off');
+hLeg.ItemTokenSize = [18 18]; % short line samples: legend within the figure width (property only)
+set(gca,'TickLabelInterpreter','tex');
+aPos4powyaw = 1;
+set(nF,'Position',[pos(1:3),pos(4)*aPos4powyaw]);
 strName = sprintf('PowerVsYaw');
 set(gcf,'Name', strName);
 print(gcf,fullfile(dirFig,strName), '-dpng');
@@ -358,6 +363,10 @@ end
 %% Flow left to right: two yaw angles per figure (tiled layout)
 % Colormap sky extended by black and white, Bastankhah wake in bold blue
 gammaPairs = [0 5; 10 20; 25 30];
+% One colour scale for all yaw figures: same colour for the same speed
+iGAll = arrayfun(@(g) find(angleVec == g), gammaPairs(:));
+uMinAll = min(arrayfun(@(i) min(sol_array(kPlotVec(i)).u(5:end-4,5:end-4),[],'all'), iGAll));
+optsFlow = struct('cLim', [uMinAll, 1.05*Wp.site.u_Inf]);
 for idx = 1:size(gammaPairs,1)
     iG = arrayfun(@(g) find(angleVec == g), gammaPairs(idx,:));
     idxPlot = xDistVec <= diff(Wp.turbine.Crx);
@@ -373,7 +382,7 @@ for idx = 1:size(gammaPairs,1)
     nF = figure(nF.Number +1);
     pos = get(nF,'Position');
     set(nF,'Position',[pos(1:2),pos(3)*1.3,pos(4)*1.2]);
-    WFSim_flow_tiled(Wp,solP,deltaP,sigmaP,xP,nF);
+    WFSim_flow_tiled(Wp,solP,deltaP,sigmaP,xP,nF,optsFlow);
     filenamepng1 = sprintf('gamma%d_%d_FlowTiled',gammaPairs(idx,:));
     set(nF,'Name', filenamepng1);
     print(nF,fullfile(dirFig,filenamepng1), '-dpng');
