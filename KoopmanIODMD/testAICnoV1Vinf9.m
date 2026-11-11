@@ -105,6 +105,7 @@ for idxV = 1:2
     end
 end
 setFigureFont(fig, 12); % all text 12 pt, bold titles
+setTimeLabelFontSize(fig); % time axis label 14 (runGenerateAllThesisFigures)
 setFigureSize(fig, [1 1]); % standard figure, independent of the screen
 padYLim(fig); % y axes not completely tight
 tightenTiles(axV); % x tick labels only at the bottom, no y tick labels at the limits
