@@ -3,7 +3,10 @@
 %% Get current folder, data folder
 try pwd1 = mfilename('fullpath'); catch, pwd1 = pwd; end
 
-mainDir =  fileparts(fileparts(fileparts(fileparts(pwd1))));
+mainDirWFSim =  fileparts(fileparts(fileparts(pwd1)));
+mainDir =  fileparts(mainDirWFSim);
+addpath(fullfile(mainDirWFSim,'libraries','mexcdf'));
+
 filename = 'Vinf8dot0_sowfa_2turb_yaw_steps_solArray.mat';
 mainDataDir = 'DataT2OLWFSim';
 dataDir = 'Vinf8dot0_OL_Ct';
@@ -352,6 +355,30 @@ for idx = 1:3
 
 end
 
+%% Flow left to right: two yaw angles per figure (tiled layout)
+% Colormap sky extended by black and white, Bastankhah wake in bold blue
+gammaPairs = [0 5; 10 20; 25 30];
+for idx = 1:size(gammaPairs,1)
+    iG = arrayfun(@(g) find(angleVec == g), gammaPairs(idx,:));
+    idxPlot = xDistVec <= diff(Wp.turbine.Crx);
+    solP = cell(1,2); deltaP = solP; sigmaP = solP; xP = solP;
+    for k = 1:2
+        solP{k} = sol_array(kPlotVec(iG(k)));
+        deltaP{k} = deltaVec(idxPlot,iG(k));
+        sigmaY = sigmaYVec(idxPlot,iG(k));
+        sigmaY(xDistVec(idxPlot) < (x0Vec(iG(k))-5)) = NaN; % far wake only, as above
+        sigmaP{k} = sigmaY;
+        xP{k} = xDistVec(idxPlot);
+    end
+    nF = figure(nF.Number +1);
+    pos = get(nF,'Position');
+    set(nF,'Position',[pos(1:2),pos(3)*1.3,pos(4)*1.2]);
+    WFSim_flow_tiled(Wp,solP,deltaP,sigmaP,xP,nF);
+    filenamepng1 = sprintf('gamma%d_%d_FlowTiled',gammaPairs(idx,:));
+    set(nF,'Name', filenamepng1);
+    print(nF,fullfile(dirFig,filenamepng1), '-dpng');
+    print(nF,fullfile(dirFig,filenamepng1), '-depsc');
+end
 
 set(0,'DefaultAxesFontSize',dAFS);
 set(0,'DefaultTextFontSize',dTFS);
