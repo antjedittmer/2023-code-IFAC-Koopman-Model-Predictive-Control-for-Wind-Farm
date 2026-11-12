@@ -5,9 +5,10 @@ function hfig = WFSim_flow_tiled(Wp, solCell, deltaCell, sigmaYCell, xDistCell, 
 %   the other) with x horizontal (flow from left to right), one colorbar
 %   for all tiles and the Bastankhah Gaussian wake (centerline delta
 %   dashed, expansion sigma_y dash-dotted) in bold blue lines with white
-%   outline. Default colormap hot (black - red - yellow - white, upper
-%   limit 1.05*uRef as in the original WFSim figures: the wake stands out
-%   clearly), rotors as black lines, labels WT1 blue and WT2 red. The free
+%   outline. Default colormap oslo (black - dark blue - light blue -
+%   white, brightness increasing evenly, also readable in grey-scale
+%   print; upper limit 1.05*uRef as in the original WFSim figures), rotors
+%   as black lines, labels WT1 blue and WT2 red. The free
 %   stream V_inf is shown in the lower left corner, the yaw angle of WT1
 %   in the lower right corner.
 %   deltaCell, sigmaYCell, xDistCell: centerline, wake width and
@@ -20,10 +21,14 @@ function hfig = WFSim_flow_tiled(Wp, solCell, deltaCell, sigmaYCell, xDistCell, 
 %     tile, e.g. for snapshots with different inflow speeds (default false)
 %   - cLim: colour limits; the same cLim in several figures gives the same
 %     colour for the same speed
-%   - cMapStyle: 'hot' (default), 'diverging' (as the MAECOsim figures:
-%     blue - white - red with white at the free stream, blue deficit, red
-%     speed-up, each over its own range) or 'sky' (black - blue-grey -
-%     sky - white, upper limit 1.05*uRef)
+%   - cMapStyle: 'oslo' (default; black - dark blue - light blue - white,
+%     approximation of Crameri's oslo), 'hot' (black - red - yellow -
+%     white), 'cold' (hot with swapped colour channels: black - blue -
+%     cyan - white), 'sky' (black - blue-grey - sky - white) or
+%     'diverging' (as the MAECOsim figures: blue - white - red with white
+%     at the free stream, blue deficit, red speed-up, each over its own
+%     range); all but diverging with upper limit 1.05*uRef. Wake lines
+%     blue with light grey outline, labels in tight light grey boxes
 %   - rotorColor: colour of the rotor lines (default black)
 
 if nargin < 6 || isempty(hfig)
@@ -36,7 +41,7 @@ fs = 12;
 lwWake = 2;                                                                % bold Bastankhah lines
 clWake = [0 0 1];
 clT = {[0 0 1], [1 0 0], [0 0 0]};                                         % WT1 blue, WT2 red (as in the power plots)
-cMapStyle = 'hot';
+cMapStyle = 'oslo';
 if isfield(opts, 'cMapStyle'), cMapStyle = opts.cMapStyle; end
 relative = isfield(opts, 'relative') && opts.relative;
 
@@ -66,14 +71,25 @@ if relative, uWhite = 0; end
 fMin = min(cellfun(@(f) min(f, [], 'all'), F));
 fMax = max(cellfun(@(f) max(f, [], 'all'), F));
 
-if strcmp(cMapStyle, 'hot')
-    % MATLAB hot (black - red - yellow - white), upper limit 1.05*uRef as
-    % in the original WFSim animation figures
+clBox = [0.9 0.9 0.9];                                                     % light grey: line outline and label boxes
+if any(strcmp(cMapStyle, {'hot', 'cold', 'oslo'}))
+    % hot: MATLAB hot (black - red - yellow - white); cold: hot with the
+    % colour channels swapped (black - blue - cyan - white); oslo: black -
+    % dark blue - light blue - white (approximation of Crameri's oslo,
+    % brightness increasing evenly). Upper limit 1.05*uRef as in the
+    % original WFSim animation figures
     cLim = [fMin, uWhite + 0.05*uRef];
     if isfield(opts, 'cLim'), cLim = opts.cLim; end
-    cH = hot(256);
-    uNodes = linspace(cLim(1), cLim(2), 256);
-    cNodes = cH;
+    if strcmp(cMapStyle, 'oslo')
+        cNodes = [0.004 0.004 0.005; 0.067 0.165 0.282; 0.133 0.329 0.553; ...
+            0.333 0.525 0.796; 0.643 0.698 0.788; 1 1 1];
+    else
+        cNodes = hot(256);
+        if strcmp(cMapStyle, 'cold')
+            cNodes = cNodes(:, [3 2 1]);
+        end
+    end
+    uNodes = linspace(cLim(1), cLim(2), size(cNodes, 1));
 elseif strcmp(cMapStyle, 'sky')
     % Black (wake core) - blue-grey - sky (dark to light) - white (free
     % stream): brightness increases with the wind speed; nodes in m/s
@@ -103,6 +119,7 @@ cMap = [interp1(uNodes, cNodes(:,1), t), interp1(uNodes, cNodes(:,2), t), interp
 
 tl = tiledlayout(hfig, nT, 1, 'TileSpacing', 'tight', 'Padding', 'tight');
 ax = gobjects(nT, 1);
+hLab = gobjects(0);                                                        % wake labels (boxes at the end)
 for iT = 1:nT
     sol = solCell{iT};
     ax(iT) = nexttile(tl);
@@ -141,16 +158,18 @@ for iT = 1:nT
         yLines = {yC, yC + sigmaY, yC - sigmaY};
         styles = {'--', '-.', '-.'};
         for iL = 1:3
-            plot(ax(iT), xW, yLines{iL}, '-', 'Color', [1 1 1 0.7], 'LineWidth', lwWake + 1.5);
+            plot(ax(iT), xW, yLines{iL}, '-', 'Color', [clBox 0.8], 'LineWidth', lwWake + 1.5);
             plot(ax(iT), xW, yLines{iL}, styles{iL}, 'Color', clWake, 'LineWidth', lwWake);
         end
         iS = find(~isnan(sigmaY), 1);
         iM = round(0.12*numel(xW));                                        % delta below the centerline, close to WT1
-        text(ax(iT), xW(iM), yC(iM) - 10, '\delta', 'FontSize', fs+2, 'Color', clWake, ...
-            'FontWeight', 'bold', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
+        % labels in light grey boxes, far enough below the lines that the
+        % boxes do not touch them
+        hLab(end+1) = text(ax(iT), xW(iM), yC(iM) - 28, '\delta', 'FontSize', 16, 'Color', clWake, ...
+            'FontWeight', 'bold', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center'); %#ok<AGROW>
         iSig = iS + round(0.3*(numel(xW) - iS));                           % sigma_y below the lower expansion line
-        text(ax(iT), xW(iSig), yC(iSig) - sigmaY(iSig) - 8, '\sigma_y', 'FontSize', fs+2, ...
-            'Color', clWake, 'FontWeight', 'bold', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center');
+        hLab(end+1) = text(ax(iT), xW(iSig), yC(iSig) - sigmaY(iSig) - 26, '\sigma_y', 'FontSize', fs+2, ...
+            'Color', clWake, 'FontWeight', 'bold', 'VerticalAlignment', 'top', 'HorizontalAlignment', 'center'); %#ok<AGROW>
     end
 
     % Free stream at the inflow boundary: arrow bottom left, away from the turbine labels
@@ -180,4 +199,19 @@ else
     cb.Label.String = 'Long. wind u (m/s)';
 end
 cb.FontSize = fs;
+
+% Tight light grey boxes behind the wake labels: the text background box
+% includes the full line height of the font, so the boxes are drawn from
+% the text extent (after the final layout) without the empty space above
+% and below the glyphs
+drawnow;
+for iL = 1:numel(hLab)
+    e = hLab(iL).Extent;                                                   % [x y w h] in data units
+    padX = 0.08*e(4);
+    xB = [e(1) - padX, e(1) + e(3) + padX];
+    yB = e(2) + e(4)*[0.12, 0.80];
+    hP = patch(hLab(iL).Parent, xB([1 2 2 1]), yB([1 1 2 2]), clBox, 'EdgeColor', 'none');
+    uistack(hLab(iL), 'top');
+    hP.PickableParts = 'none';
+end
 end

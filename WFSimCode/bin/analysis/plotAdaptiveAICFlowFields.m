@@ -49,7 +49,7 @@ pd = tmp.pd;
 tSnap = round([S.snap.time]);
 
 % One colour scale for all figures: deviation u - V_inf from the inflow
-% speed of each snapshot (7 or 9 m/s), colormap hot (WFSim_flow_tiled)
+% speed of each snapshot (7 or 9 m/s), default colormap oslo (WFSim_flow_tiled)
 iAll = arrayfun(@(tt) find(tSnap == tt, 1), tSel(:));
 if numel(iAll) < numel(tSel)
     error('plotAdaptiveAICFlowFields:time', 'Snapshots only every 5 s (times %s).', mat2str(tSel));

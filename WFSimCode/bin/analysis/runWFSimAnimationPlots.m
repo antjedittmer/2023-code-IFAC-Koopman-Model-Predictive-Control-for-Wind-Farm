@@ -375,10 +375,10 @@ if plotAll
 end % plotAll
 
 %% Flow left to right: two yaw angles per figure (tiled layout)
-% Colormap sky extended by black and white, Bastankhah wake in bold blue
+% Colormap oslo (black - dark blue - light blue - white), Bastankhah wake in bold blue
 gammaPairs = [0 5; 10 20; 25 30];
 % One colour scale for all yaw figures: same colour for the same speed;
-% colormap hot up to 1.05*V_inf (wake clearly visible), black rotors
+% colormap up to 1.05*V_inf, black rotors
 iGAll = arrayfun(@(g) find(angleVec == g), gammaPairs(:));
 uMinAll = min(arrayfun(@(i) min(sol_array(kPlotVec(i)).u(5:end-4,5:end-4),[],'all'), iGAll));
 optsFlow = struct('cLim', [uMinAll, 1.05*Wp.site.u_Inf]);
