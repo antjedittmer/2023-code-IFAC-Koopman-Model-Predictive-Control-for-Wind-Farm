@@ -41,7 +41,7 @@ fs = 12;
 lwWake = 2;                                                                % bold Bastankhah lines
 clWake = [0 0 1];
 clT = {[0 0 1], [1 0 0], [0 0 0]};                                         % WT1 blue, WT2 red (as in the power plots)
-cMapStyle = 'oslo';
+cMapStyle = 'hot';
 if isfield(opts, 'cMapStyle'), cMapStyle = opts.cMapStyle; end
 relative = isfield(opts, 'relative') && opts.relative;
 
@@ -144,8 +144,8 @@ for iT = 1:nT
         clRotor = [0 0 0];                                                 % black rotors, labels in the turbine colours
         if isfield(opts, 'rotorColor'), clRotor = opts.rotorColor; end
         plot(ax(iT), xr, yr, 'Color', clRotor, 'LineWidth', 2.5);
-        text(ax(iT), Crx(kk) - 40, Cry(kk) + 0.5*Dr + 50, sprintf('WT%d', kk), 'FontSize', fs, ...
-            'Color', clT{kk}, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom');
+        hLab(end+1) = text(ax(iT), Crx(kk) - 40, Cry(kk) + 0.5*Dr + 50, sprintf('WT%d', kk), 'FontSize', 14, ...
+            'Color', clT{kk}, 'HorizontalAlignment', 'center', 'VerticalAlignment', 'bottom'); %#ok<AGROW> tight light grey box at the end
     end
 
     % Bastankhah wake of WT1: centerline delta and expansion +/- sigma_y,
