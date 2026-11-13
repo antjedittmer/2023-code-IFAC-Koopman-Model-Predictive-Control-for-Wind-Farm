@@ -376,7 +376,7 @@ end % plotAll
 
 %% Flow left to right: two yaw angles per figure (tiled layout)
 % Colormap oslo (black - dark blue - light blue - white), Bastankhah wake in bold blue
-gammaPairs = [0 5; 10 20; 25 30];
+gammaPairs = [0 5; 10 20; 25 35];
 % One colour scale for all yaw figures: same colour for the same speed;
 % colormap up to 1.05*V_inf, black rotors
 iGAll = arrayfun(@(g) find(angleVec == g), gammaPairs(:));
