@@ -1,4 +1,4 @@
-function notCalled = plotFlowchartInitCtrlPlant(variant, profInfo, dirFig)
+function notCalled = plotFlowchartInitCtrlPlant(variant, profInfo, dirFig, codeVersion)
 %PLOTFLOWCHARTINITCTRLPLANT WFSim program structure diagram (thesis figure)
 %   plotFlowchartInitCtrlPlant(variant) draws the WFSim function call tree
 %   of a closed-loop simulation in three boxes: initialization (black),
@@ -6,12 +6,21 @@ function notCalled = plotFlowchartInitCtrlPlant(variant, profInfo, dirFig)
 %   FlowchartInitCtrlPlant_<variant> (png, eps) in dirFig (default
 %   figuresBlockDiagram_IFAC23 next to this file):
 %   - variant 1: original WFSim, nine turbines, NMPC with YALMIP
-%   - variant 2: modified WFSim, two turbines, Koopman MPC (QP) as in the
-%     current WFSim_demo (default: WRC-AIC, rotor effective wind speeds
-%     estimated from the power). Modified functions in the colour of their
-%     box, functions added for the Koopman MPC in bold, unchanged functions
-%     grey. Not shown: the identification signal set controlSet_sowfa_2turb_
-%     yaw_alm_turbl_AllComb1 (not used in the closed loop).
+%   - variant 2: modified WFSim, two turbines, Koopman MPC (QP). Modified
+%     functions in the colour of their box, functions added for the
+%     Koopman MPC in bold, unchanged functions grey.
+%
+%   plotFlowchartInitCtrlPlant(variant, profInfo, dirFig, codeVersion) selects
+%   the code version of variant 2 (same file name, so the version decides
+%   which diagram the thesis shows):
+%   - 'Sharan2022' (default): Koopman MPC (AIC) as published in
+%     Sharan2022 (MPCinitK, wfmodel, Matsys, H_G_matrix_dU), as in the
+%     thesis figure
+%   - 'current': the current WFSim_demo (default: WRC-AIC, rotor effective
+%     wind speeds estimated from the power: urFromPower, MPCinitv,
+%     findMaxYaw, wfmodelNL, MatsysP, H_G_Kmatrix_dU). Not shown: the
+%     identification signal set controlSet_sowfa_2turb_yaw_alm_turbl_
+%     AllComb1 (not used in the closed loop).
 %   The functions and their nesting are those of a MATLAB profiler run of
 %   WFSim_demo, reordered by their dependencies (order of the calls).
 %
@@ -31,6 +40,10 @@ end
 if nargin < 3 || isempty(dirFig)
     dirFig = fullfile(fileparts(mfilename('fullpath')), 'figuresBlockDiagram_IFAC23');
 end
+if nargin < 4 || isempty(codeVersion)
+    codeVersion = 'Sharan2022';
+end
+codeVersion = validatestring(codeVersion, {'Sharan2022', 'current'});
 
 % {text, indentation level, box (1 init, 2 farm model, 3 controller),
 %  style ('' unchanged: grey, 'm' modified: box colour, 'n' new: box colour, bold)}
@@ -71,6 +84,26 @@ if variant == 1
         'matsys',                               3, 3, ''
         'optimize',                             3, 3, ''}];
     yTop = 44; y0 = 70;                                                    % box top, first line (px)
+elseif strcmp(codeVersion, 'Sharan2022')
+    entries = [{
+        'WFSim_demo',                           0, 1, 'm'
+        'WFSim_addpaths',                       1, 1, 'm'
+        'layoutSet_sowfa_2turb_alm_turbl',      1, 1, 'm'
+        'controlSet_sowfa_2turb_alm_turbl',     1, 1, 'm'
+        'solverSet_default',                    1, 1, ''
+        'InitWFSim',                            1, 1, ''
+        'meshing',                              2, 1, ''
+        'Compute_B1_B2_bc',                     2, 1, ''
+        'MPCinitK',                             1, 1, 'n'
+        'koopmanstateextensionWFSim',           2, 1, 'n'}
+        farmModel
+        {'qLPVMPCcontroller_dU_quadprog',       1, 3, 'n'
+        'MPCinit_ctrl',                         2, 3, 'n'
+        'wfmodel',                              2, 3, 'm'
+        'Matsys',                               2, 3, 'm'
+        'quadprog_sol',                         2, 3, 'n'
+        'H_G_matrix_dU',                        3, 3, 'n'}];
+    yTop = 51; y0 = 70;
 else
     entries = [{
         'WFSim_demo',                           0, 1, 'm'
